@@ -3,14 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Plus, Shield, Users, FileText, Scale } from "lucide-react";
 
 const usuarios = [
-  { nome: "Mariana Costa", email: "mariana.costa@ses.sp.gov.br", perfil: "Analista da Farmácia" },
-  { nome: "Rafael Souza", email: "rafael.souza@ses.sp.gov.br", perfil: "Analista da Farmácia" },
-  { nome: "Patrícia Lima", email: "patricia.lima@ses.sp.gov.br", perfil: "Revisor/Coordenador" },
-  { nome: "Admin do Sistema", email: "admin@ses.sp.gov.br", perfil: "Administrador" },
+  { nome: "Mariana Costa", email: "mariana.costa@ses.sp.gov.br", perfil: "Analista" },
+  { nome: "Rafael Souza", email: "rafael.souza@ses.sp.gov.br", perfil: "Analista" },
+  { nome: "Paula Mendes", email: "paula.mendes@ses.sp.gov.br", perfil: "Administrador" },
 ];
 
 const cards = [
-  { icon: Users, title: "Usuários e perfis", desc: "Gerencie analistas, revisores e administradores." },
+  { icon: Users, title: "Usuários e perfis", desc: "Gerencie analistas e administradores." },
   { icon: Shield, title: "Controle de acesso", desc: "Defina permissões por perfil (LGPD)." },
   { icon: FileText, title: "Modelos de minuta", desc: "Templates padrão utilizados pela IA." },
   { icon: Scale, title: "Base de jurisprudências", desc: "Importação manual e ativação." },
