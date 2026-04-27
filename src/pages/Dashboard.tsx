@@ -9,8 +9,8 @@ import { Progress } from "@/components/ui/progress";
 import { useDrafts } from "@/context/DraftsContext";
 
 const Dashboard = () => {
-  const { drafts } = useDrafts();
-  const effective = getEffectiveList(seis, drafts);
+  const { drafts, priorities } = useDrafts();
+  const effective = getEffectiveList(seis, drafts, priorities);
   const metrics = computeMetrics(effective);
   const preAnalisados = effective.filter((s) => s.status === "Pré-analisado (IA)");
   const emRevisao = effective.filter((s) => s.status === "Em revisão");
