@@ -62,7 +62,13 @@ const SeisList = () => {
                   <td className="px-5 py-3"><StatusBadge value={s.status} /></td>
                   <td className="px-5 py-3 text-right space-x-2">
                     <Button asChild size="sm" variant="ghost"><Link to={`/seis/${s.id}`}>Detalhes</Link></Button>
-                    <Button asChild size="sm"><Link to={`/minutador/${s.id}`}>Analisar</Link></Button>
+                    {s.status !== "Concluído" && (
+                      <Button asChild size="sm">
+                        <Link to={`/minutador/${s.id}`}>
+                          {s.status === "Em revisão" ? "Continuar" : "Analisar"}
+                        </Link>
+                      </Button>
+                    )}
                   </td>
                 </tr>
               ))}
