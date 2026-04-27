@@ -2,7 +2,7 @@ export type Priority = "Alta" | "Média" | "Baixa";
 // Fluxo: todo SEI entra e é PRÉ-ANALISADO pela IA automaticamente.
 // O humano apenas revisa e finaliza.
 export type SeiStatus =
-  | "Pré-analisado (IA)"   // IA terminou, aguarda revisão humana
+  | "Pré-análise"   // IA terminou, aguarda revisão humana
   | "Em revisão"            // humano começou a revisar (rascunho salvo)
   | "Concluído";            // humano finalizou a análise
 
@@ -44,7 +44,7 @@ export const seis: Sei[] = [
     dataRecebimento: "20/05/2024",
     dataPreAnalise: "20/05/2024",
     prioridade: "Alta",
-    status: "Pré-analisado (IA)",
+    status: "Pré-análise",
     partes: "João da Silva x Estado de SP",
     resumo: "Paciente requer fornecimento de medicamento de alto custo não incorporado ao SUS para tratamento oncológico, com apresentação de laudo médico e relatório de insucesso terapêutico.",
     iaConfidence: 0.92,
@@ -58,7 +58,7 @@ export const seis: Sei[] = [
     dataRecebimento: "19/05/2024",
     dataPreAnalise: "19/05/2024",
     prioridade: "Média",
-    status: "Pré-analisado (IA)",
+    status: "Pré-análise",
     partes: "Maria Souza x Estado de SP",
     resumo: "Solicitação de medicamento constante na RENAME. Verificar disponibilidade na rede SUS.",
     iaConfidence: 0.88,
@@ -72,7 +72,7 @@ export const seis: Sei[] = [
     dataRecebimento: "18/05/2024",
     dataPreAnalise: "18/05/2024",
     prioridade: "Média",
-    status: "Pré-analisado (IA)",
+    status: "Pré-análise",
     partes: "Carlos Pereira x Estado de SP",
     resumo: "Requer fitas e insumos para controle glicêmico.",
     iaConfidence: 0.81,
@@ -86,7 +86,7 @@ export const seis: Sei[] = [
     dataRecebimento: "17/05/2024",
     dataPreAnalise: "17/05/2024",
     prioridade: "Baixa",
-    status: "Pré-analisado (IA)",
+    status: "Pré-análise",
     partes: "Ana Lima x Estado de SP",
     resumo: "Medicamento com similar padronizado disponível.",
     iaConfidence: 0.76,
@@ -289,7 +289,7 @@ export function getEffectiveList(
 
 export function computeMetrics(list: Sei[]) {
   return {
-    preAnalisadosIA: list.filter((s) => s.status === "Pré-analisado (IA)").length,
+    preAnalisadosIA: list.filter((s) => s.status === "Pré-análise").length,
     emRevisaoHumana: list.filter((s) => s.status === "Em revisão").length,
     concluidos: list.filter((s) => s.status === "Concluído").length,
     total: list.length,

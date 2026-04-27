@@ -12,7 +12,7 @@ const Dashboard = () => {
   const { drafts, priorities } = useDrafts();
   const effective = getEffectiveList(seis, drafts, priorities);
   const metrics = computeMetrics(effective);
-  const preAnalisados = effective.filter((s) => s.status === "Pré-analisado (IA)");
+  const preAnalisados = effective.filter((s) => s.status === "Pré-análise");
   const emRevisao = effective.filter((s) => s.status === "Em revisão");
   const revisadosHumanos = effective.filter((s) => s.status === "Concluído").slice(0, 4);
 
