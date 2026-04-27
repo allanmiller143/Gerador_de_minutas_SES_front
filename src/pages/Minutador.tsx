@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { seis, jurisprudencias } from "@/data/mock";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Check, CheckCircle2, Save, Lock, Bot } from "lucide-react";
+import { ArrowLeft, Check, CheckCircle2, Save, Lock, Bot, Scale } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -19,9 +19,6 @@ const Minutador = () => {
 
   const existingDraft = getDraft(sei.id);
 
-  // Todo SEI já entra pré-analisado pela IA (fluxo off-line). Não há loading.
-  // Se já existe rascunho humano, carrega o texto editado.
-  // Caso contrário, carrega a minuta sugerida pela IA, pronta para edição.
   const [minuta, setMinuta] = useState(
     existingDraft?.minuta ?? gerarMinuta(sei.numero, sei.assunto)
   );
@@ -30,29 +27,26 @@ const Minutador = () => {
   const isFinalized = existingDraft?.status === "Concluído";
   const readOnly = isLockedByOther || isFinalized;
 
-  // Etapa visual: em revisão/finalizado → 3, caso contrário → 2 (minuta pronta)
-  const etapaAtual = existingDraft ? 3 : 2;
+  // A IA já terminou tudo off-line. Ao abrir o editor, estamos sempre na etapa de revisão humana.
+  const etapaAtual = 3;
 
-  const juris = useMemo(() => jurisprudencias.slice(0, 3), []);
+  const juris = useMemo(
+    () => jurisprudencias.filter((j) => sei.jurisprudenciasSugeridas.includes(j.id)),
+    [sei.id]
+  );
 
   const handleSaveDraft = () => {
     if (!user) return;
-    if (isLockedByOther) {
-      toast.error("Esta análise pertence a outro usuário.");
-      return;
-    }
+    if (isLockedByOther) { toast.error("Esta análise pertence a outro usuário."); return; }
     saveDraft({ seiId: sei.id, minuta, ownerEmail: user.email, ownerName: user.name });
     toast.success("Rascunho salvo com sucesso.");
   };
 
   const handleFinalize = () => {
     if (!user) return;
-    if (isLockedByOther) {
-      toast.error("Esta análise pertence a outro usuário.");
-      return;
-    }
+    if (isLockedByOther) { toast.error("Esta análise pertence a outro usuário."); return; }
     saveDraft({ seiId: sei.id, minuta, ownerEmail: user.email, ownerName: user.name });
-    finalizeDraft(sei.id);
+    finalizeDraft(sei.id, user.name);
     toast.success("Análise finalizada e marcada como concluída.");
   };
 
@@ -66,7 +60,7 @@ const Minutador = () => {
       <div className="bg-card border border-border rounded-xl shadow-card p-6 mb-6">
         <div className="flex items-center justify-between">
           {etapas.map((label, i) => {
-            const active = i === etapaAtual;
+            const active = i === etapaAtual && !isFinalized;
             const complete = i < etapaAtual || isFinalized;
             return (
               <div key={label} className="flex-1 flex items-center">
@@ -92,70 +86,83 @@ const Minutador = () => {
         </div>
       </div>
 
-      {/* Banner – pré-análise IA já realizada */}
-      {!existingDraft && (
-        <div className="mb-6 rounded-xl border border-primary/20 bg-accent/50 px-4 py-3 text-sm text-accent-foreground flex items-center gap-2">
-          <Bot className="h-4 w-4 text-primary" />
-          Este processo já foi <strong className="mx-1">pré-analisado pela IA</strong>. Revise, ajuste e finalize a minuta abaixo.
-        </div>
-      )}
+      <div className="mb-6 rounded-xl border border-primary/20 bg-accent/50 px-4 py-3 text-sm text-accent-foreground flex items-center gap-2">
+        <Bot className="h-4 w-4 text-primary" />
+        Pré-análise, pesquisa de jurisprudência e minuta inicial já foram geradas pela IA. Revise, ajuste e finalize abaixo.
+      </div>
 
-      <section className="bg-card border border-border rounded-xl shadow-card p-6">
-        {isLockedByOther && (
-          <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive px-4 py-3 text-sm flex items-center gap-2">
-            <Lock className="h-4 w-4" />
-            Esta análise está sob responsabilidade de <strong className="mx-1">{existingDraft?.ownerName}</strong>. Você pode visualizar, mas não editar.
-          </div>
-        )}
-        {isFinalized && !isLockedByOther && (
-          <div className="mb-4 rounded-lg border border-success/30 bg-success/10 text-success px-4 py-3 text-sm flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4" />
-            Esta análise já foi finalizada.
-          </div>
-        )}
-
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="font-semibold">
-              {isFinalized ? "Minuta finalizada" : readOnly ? "Minuta (somente leitura)" : "Minuta – pronta para edição"}
-            </h2>
-            {existingDraft && (
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Última atualização por {existingDraft.ownerName} em {new Date(existingDraft.updatedAt).toLocaleString("pt-BR")}
-              </p>
-            )}
-          </div>
-          {!readOnly && (
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={handleSaveDraft}>
-                <Save className="h-4 w-4 mr-2" /> Salvar rascunho
-              </Button>
-              <Button size="sm" onClick={handleFinalize}>
-                <CheckCircle2 className="h-4 w-4 mr-2" /> Finalizar análise
-              </Button>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <section className="lg:col-span-2 bg-card border border-border rounded-xl shadow-card p-6">
+          {isLockedByOther && (
+            <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive px-4 py-3 text-sm flex items-center gap-2">
+              <Lock className="h-4 w-4" />
+              Esta análise está sob responsabilidade de <strong className="mx-1">{existingDraft?.ownerName}</strong>. Você pode visualizar, mas não editar.
             </div>
           )}
-        </div>
-
-        <textarea
-          value={minuta}
-          onChange={(e) => setMinuta(e.target.value)}
-          readOnly={readOnly}
-          className={cn(
-            "w-full min-h-[420px] border border-border rounded-lg p-4 text-sm font-mono leading-relaxed bg-background focus:outline-none focus:ring-2 focus:ring-ring resize-y",
-            readOnly && "bg-secondary/40 cursor-not-allowed"
+          {isFinalized && !isLockedByOther && (
+            <div className="mb-4 rounded-lg border border-success/30 bg-success/10 text-success px-4 py-3 text-sm flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4" />
+              Esta análise já foi finalizada.
+            </div>
           )}
-        />
 
-        <div className="mt-4 p-4 bg-accent/40 rounded-lg">
-          <div className="text-xs font-semibold text-accent-foreground uppercase tracking-wide mb-2">Jurisprudências referenciadas pela IA</div>
-          <ul className="space-y-1 text-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="font-semibold">
+                {isFinalized ? "Minuta finalizada" : readOnly ? "Minuta (somente leitura)" : "Minuta – pronta para edição"}
+              </h2>
+              {existingDraft && (
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Última atualização por {existingDraft.ownerName} em {new Date(existingDraft.updatedAt).toLocaleString("pt-BR")}
+                </p>
+              )}
+            </div>
+            {!readOnly && (
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={handleSaveDraft}>
+                  <Save className="h-4 w-4 mr-2" /> Salvar rascunho
+                </Button>
+                <Button size="sm" onClick={handleFinalize}>
+                  <CheckCircle2 className="h-4 w-4 mr-2" /> Finalizar análise
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <textarea
+            value={minuta}
+            onChange={(e) => setMinuta(e.target.value)}
+            readOnly={readOnly}
+            className={cn(
+              "w-full min-h-[420px] border border-border rounded-lg p-4 text-sm font-mono leading-relaxed bg-background focus:outline-none focus:ring-2 focus:ring-ring resize-y",
+              readOnly && "bg-secondary/40 cursor-not-allowed"
+            )}
+          />
+        </section>
+
+        <aside className="bg-card border border-border rounded-xl shadow-card p-5 h-fit">
+          <div className="flex items-center gap-2 mb-3">
+            <Scale className="h-4 w-4 text-primary" />
+            <h3 className="font-semibold text-sm">Jurisprudências encontradas</h3>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">
+            Selecionadas pela IA com base no tema do processo.
+          </p>
+          <ul className="space-y-3">
             {juris.map((j) => (
-              <li key={j.id}>• <span className="font-medium">{j.tribunal} – {j.numero}</span> · {j.tema}</li>
+              <li key={j.id} className="border border-border rounded-lg p-3 hover:bg-secondary/40 transition-colors">
+                <div className="text-xs font-semibold text-primary">{j.tribunal}</div>
+                <div className="font-mono text-[11px] text-muted-foreground mb-1">{j.numero}</div>
+                <div className="text-sm font-medium mb-1">{j.tema}</div>
+                <p className="text-xs text-muted-foreground line-clamp-3">{j.resumo}</p>
+              </li>
             ))}
+            {juris.length === 0 && (
+              <li className="text-xs text-muted-foreground">Nenhuma jurisprudência associada.</li>
+            )}
           </ul>
-        </div>
-      </section>
+        </aside>
+      </div>
     </AppLayout>
   );
 };

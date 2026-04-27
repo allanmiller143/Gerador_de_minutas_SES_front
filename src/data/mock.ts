@@ -249,21 +249,42 @@ export interface DraftLike {
   updatedAt: string;
 }
 
-export function getEffectiveSei(sei: Sei, drafts: Record<string, DraftLike>): Sei {
-  const d = drafts[sei.id];
-  if (!d) return sei;
-  return {
-    ...sei,
-    status: d.status,
-    analista: d.ownerName,
-    dataRevisao: d.status === "Concluído"
-      ? new Date(d.updatedAt).toLocaleDateString("pt-BR")
-      : sei.dataRevisao,
-  };
+export interface PriorityLike {
+  seiId: string;
+  priority: Priority;
+  updatedAt: string;
 }
 
-export function getEffectiveList(list: Sei[], drafts: Record<string, DraftLike>): Sei[] {
-  return list.map((s) => getEffectiveSei(s, drafts));
+export function getEffectiveSei(
+  sei: Sei,
+  drafts: Record<string, DraftLike>,
+  priorities: Record<string, PriorityLike> = {},
+): Sei {
+  const d = drafts[sei.id];
+  const p = priorities[sei.id];
+  let out = sei;
+  if (d) {
+    out = {
+      ...out,
+      status: d.status,
+      analista: d.ownerName,
+      dataRevisao: d.status === "Concluído"
+        ? new Date(d.updatedAt).toLocaleDateString("pt-BR")
+        : sei.dataRevisao,
+    };
+  }
+  if (p) {
+    out = { ...out, prioridade: p.priority };
+  }
+  return out;
+}
+
+export function getEffectiveList(
+  list: Sei[],
+  drafts: Record<string, DraftLike>,
+  priorities: Record<string, PriorityLike> = {},
+): Sei[] {
+  return list.map((s) => getEffectiveSei(s, drafts, priorities));
 }
 
 export function computeMetrics(list: Sei[]) {

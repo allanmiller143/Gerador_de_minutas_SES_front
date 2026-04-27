@@ -14,15 +14,15 @@ const statusOptions: (SeiStatus | "Todos")[] = ["Todos", "Pré-analisado (IA)", 
 const SeisList = () => {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("Todos");
-  const { drafts } = useDrafts();
+  const { drafts, priorities } = useDrafts();
 
   const filtered = useMemo(() => {
-    return getEffectiveList(seis, drafts).filter((s) => {
+    return getEffectiveList(seis, drafts, priorities).filter((s) => {
       const matchQ = !q || s.numero.includes(q) || s.assunto.toLowerCase().includes(q.toLowerCase());
       const matchS = status === "Todos" || s.status === status;
       return matchQ && matchS;
     });
-  }, [q, status, drafts]);
+  }, [q, status, drafts, priorities]);
 
   return (
     <AppLayout title="SEIs" subtitle="Processos SEI cadastrados no sistema">
@@ -62,7 +62,13 @@ const SeisList = () => {
                   <td className="px-5 py-3"><StatusBadge value={s.status} /></td>
                   <td className="px-5 py-3 text-right space-x-2">
                     <Button asChild size="sm" variant="ghost"><Link to={`/seis/${s.id}`}>Detalhes</Link></Button>
-                    <Button asChild size="sm"><Link to={`/minutador/${s.id}`}>Analisar</Link></Button>
+                    {s.status !== "Concluído" && (
+                      <Button asChild size="sm">
+                        <Link to={`/minutador/${s.id}`}>
+                          {s.status === "Em revisão" ? "Continuar" : "Analisar"}
+                        </Link>
+                      </Button>
+                    )}
                   </td>
                 </tr>
               ))}
