@@ -3,7 +3,10 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/context/AuthContext";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index.tsx";
+import Login from "./pages/Login.tsx";
 import SeisList from "./pages/SeisList.tsx";
 import SeiDetail from "./pages/SeiDetail.tsx";
 import Minutador from "./pages/Minutador.tsx";
@@ -21,17 +24,20 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/seis" element={<SeisList />} />
-          <Route path="/seis/:id" element={<SeiDetail />} />
-          <Route path="/minutador/:id" element={<Minutador />} />
-          <Route path="/minhas-analises" element={<MinhasAnalises />} />
-          <Route path="/jurisprudencias" element={<Jurisprudencias />} />
-          <Route path="/relatorios" element={<Relatorios />} />
-          <Route path="/configuracoes" element={<Configuracoes />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+            <Route path="/seis" element={<ProtectedRoute><SeisList /></ProtectedRoute>} />
+            <Route path="/seis/:id" element={<ProtectedRoute><SeiDetail /></ProtectedRoute>} />
+            <Route path="/minutador/:id" element={<ProtectedRoute><Minutador /></ProtectedRoute>} />
+            <Route path="/minhas-analises" element={<ProtectedRoute><MinhasAnalises /></ProtectedRoute>} />
+            <Route path="/jurisprudencias" element={<ProtectedRoute><Jurisprudencias /></ProtectedRoute>} />
+            <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
+            <Route path="/configuracoes" element={<ProtectedRoute roles={["administrador"]}><Configuracoes /></ProtectedRoute>} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
