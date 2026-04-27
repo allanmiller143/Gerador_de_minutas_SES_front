@@ -166,9 +166,20 @@ const SeiDetail = () => {
               {sei.status === "Concluído" ? "Visualizar minuta" : "Editar minuta"}
             </Link>
           </Button>
-          <Button variant="outline" className="w-full" onClick={() => { setNewPriority(sei.prioridade); setPriorityOpen(true); }}>
+          <Button
+            variant="outline"
+            className="w-full"
+            disabled={sei.status === "Concluído"}
+            title={sei.status === "Concluído" ? "Processo já analisado – prioridade bloqueada" : undefined}
+            onClick={() => { setNewPriority(sei.prioridade); setPriorityOpen(true); }}
+          >
             <Flag className="h-4 w-4 mr-2" /> Alterar prioridade
           </Button>
+          {sei.status === "Concluído" && (
+            <p className="text-[11px] text-muted-foreground text-center -mt-1">
+              A prioridade não pode ser alterada em processos já analisados.
+            </p>
+          )}
 
           {/* Card resumo IA */}
           <div className="bg-card border border-border rounded-xl shadow-card p-4">

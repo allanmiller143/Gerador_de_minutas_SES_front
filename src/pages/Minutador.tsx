@@ -23,7 +23,8 @@ const Minutador = () => {
     existingDraft?.minuta ?? gerarMinuta(sei.numero, sei.assunto)
   );
 
-  const isLockedByOther = !!existingDraft && !!user && existingDraft.ownerEmail !== user.email;
+  const isAdmin = user?.role === "administrador";
+  const isLockedByOther = !!existingDraft && !!user && existingDraft.ownerEmail !== user.email && !isAdmin;
   const isFinalized = existingDraft?.status === "Concluído";
   const readOnly = isLockedByOther || isFinalized;
 
