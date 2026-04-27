@@ -79,25 +79,32 @@ export const DraftsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const saveDraft: DraftsContextValue["saveDraft"] = (d) => {
-    const existing = drafts[d.seiId];
     const now = new Date().toISOString();
-    const next = {
-      ...drafts,
-      [d.seiId]: {
-        seiId: d.seiId,
-        minuta: d.minuta,
-        ownerEmail: d.ownerEmail,
-        ownerName: d.ownerName,
-        status: d.status ?? "Em revisão" as const,
-        updatedAt: now,
-      },
-    };
-    persistDrafts(next);
-    if (!existing) {
-      addEvent({ seiId: d.seiId, type: "review_started", actor: d.ownerName, at: now, detail: "Revisão humana iniciada" }, events);
-    } else {
-      addEvent({ seiId: d.seiId, type: "draft_saved", actor: d.ownerName, at: now, detail: "Rascunho salvo" }, events);
-    }
+    let hadExisting = false;
+    setDrafts((prev) => {
+      hadExisting = !!prev[d.seiId];
+      const next = {
+        ...prev,
+        [d.seiId]: {
+          seiId: d.seiId,
+          minuta: d.minuta,
+          ownerEmail: d.ownerEmail,
+          ownerName: d.ownerName,
+          status: d.status ?? ("Em revisão" as const),
+          updatedAt: now,
+        },
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+    setEvents((prev) => {
+      const ev: SeiEvent = hadExisting
+        ? { seiId: d.seiId, type: "draft_saved", actor: d.ownerName, at: now, detail: "Rascunho salvo" }
+        : { seiId: d.seiId, type: "review_started", actor: d.ownerName, at: now, detail: "Revisão humana iniciada" };
+      const next = [...prev, ev];
+      localStorage.setItem(EVENTS_KEY, JSON.stringify(next));
+      return next;
+    });
   };
 
   const finalizeDraft = (seiId: string, actor: string) => {
