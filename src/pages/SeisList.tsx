@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search } from "lucide-react";
 import { useDrafts } from "@/context/DraftsContext";
 
-const statusOptions: (SeiStatus | "Todos")[] = ["Todos", "Pré-analisado (IA)", "Em revisão", "Concluído"];
+const statusOptions: (SeiStatus | "Todos")[] = ["Todos", "Pré-análise", "Em revisão", "Concluído"];
 
 const SeisList = () => {
   const [q, setQ] = useState("");

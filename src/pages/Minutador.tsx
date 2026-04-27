@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { useDrafts } from "@/context/DraftsContext";
 
-const etapas = ["Pré-análise IA", "Jurisprudências", "Minuta gerada", "Revisão humana"];
+const etapas = ["Pré-análise", "Jurisprudências", "Minuta gerada", "Revisão humana"];
 
 const Minutador = () => {
   const { id } = useParams();
@@ -23,7 +23,8 @@ const Minutador = () => {
     existingDraft?.minuta ?? gerarMinuta(sei.numero, sei.assunto)
   );
 
-  const isLockedByOther = !!existingDraft && !!user && existingDraft.ownerEmail !== user.email;
+  const isAdmin = user?.role === "administrador";
+  const isLockedByOther = !!existingDraft && !!user && existingDraft.ownerEmail !== user.email && !isAdmin;
   const isFinalized = existingDraft?.status === "Concluído";
   const readOnly = isLockedByOther || isFinalized;
 
@@ -35,17 +36,23 @@ const Minutador = () => {
     [sei.id]
   );
 
+  // Admin edita em nome do analista original (preserva autoria). Usuário comum salva como dono.
+  const effectiveOwnerEmail = isAdmin && existingDraft ? existingDraft.ownerEmail : user?.email ?? "";
+  const effectiveOwnerName = isAdmin && existingDraft ? existingDraft.ownerName : user?.name ?? "";
+
   const handleSaveDraft = () => {
     if (!user) return;
     if (isLockedByOther) { toast.error("Esta análise pertence a outro usuário."); return; }
-    saveDraft({ seiId: sei.id, minuta, ownerEmail: user.email, ownerName: user.name });
-    toast.success("Rascunho salvo com sucesso.");
+    saveDraft({ seiId: sei.id, minuta, ownerEmail: effectiveOwnerEmail, ownerName: effectiveOwnerName });
+    toast.success(isAdmin && existingDraft && existingDraft.ownerEmail !== user.email
+      ? `Rascunho salvo (edição administrativa em nome de ${existingDraft.ownerName}).`
+      : "Rascunho salvo com sucesso.");
   };
 
   const handleFinalize = () => {
     if (!user) return;
     if (isLockedByOther) { toast.error("Esta análise pertence a outro usuário."); return; }
-    saveDraft({ seiId: sei.id, minuta, ownerEmail: user.email, ownerName: user.name });
+    saveDraft({ seiId: sei.id, minuta, ownerEmail: effectiveOwnerEmail, ownerName: effectiveOwnerName });
     finalizeDraft(sei.id, user.name);
     toast.success("Análise finalizada e marcada como concluída.");
   };
@@ -103,6 +110,12 @@ const Minutador = () => {
             <div className="mb-4 rounded-lg border border-success/30 bg-success/10 text-success px-4 py-3 text-sm flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4" />
               Esta análise já foi finalizada.
+            </div>
+          )}
+          {isAdmin && existingDraft && user && existingDraft.ownerEmail !== user.email && !isFinalized && (
+            <div className="mb-4 rounded-lg border border-primary/30 bg-accent/60 text-accent-foreground px-4 py-3 text-sm flex items-center gap-2">
+              <Lock className="h-4 w-4 text-primary" />
+              Edição administrativa: você está modificando a análise de <strong className="mx-1">{existingDraft.ownerName}</strong>. A autoria será preservada.
             </div>
           )}
 

@@ -84,7 +84,7 @@ const SeiDetail = () => {
               <div><dt className="text-xs text-muted-foreground">Assunto</dt><dd>{sei.assunto}</dd></div>
               <div><dt className="text-xs text-muted-foreground">Partes</dt><dd>{sei.partes ?? "—"}</dd></div>
               <div><dt className="text-xs text-muted-foreground">Recebimento</dt><dd>{sei.dataRecebimento}</dd></div>
-              <div><dt className="text-xs text-muted-foreground">Pré-análise IA</dt><dd>{sei.dataPreAnalise}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Pré-análise</dt><dd>{sei.dataPreAnalise}</dd></div>
               <div><dt className="text-xs text-muted-foreground">Revisado em</dt><dd>{sei.dataRevisao ?? "—"}</dd></div>
               <div><dt className="text-xs text-muted-foreground">Prioridade</dt><dd><PriorityBadge value={sei.prioridade} /></dd></div>
               <div><dt className="text-xs text-muted-foreground">Status</dt><dd className="flex items-center gap-2"><StatusBadge value={sei.status} /><OriginBadge origin={sei.status === "Concluído" ? "humano" : "ia"} /></dd></div>
@@ -166,9 +166,20 @@ const SeiDetail = () => {
               {sei.status === "Concluído" ? "Visualizar minuta" : "Editar minuta"}
             </Link>
           </Button>
-          <Button variant="outline" className="w-full" onClick={() => { setNewPriority(sei.prioridade); setPriorityOpen(true); }}>
+          <Button
+            variant="outline"
+            className="w-full"
+            disabled={sei.status === "Concluído"}
+            title={sei.status === "Concluído" ? "Processo já analisado – prioridade bloqueada" : undefined}
+            onClick={() => { setNewPriority(sei.prioridade); setPriorityOpen(true); }}
+          >
             <Flag className="h-4 w-4 mr-2" /> Alterar prioridade
           </Button>
+          {sei.status === "Concluído" && (
+            <p className="text-[11px] text-muted-foreground text-center -mt-1">
+              A prioridade não pode ser alterada em processos já analisados.
+            </p>
+          )}
 
           {/* Card resumo IA */}
           <div className="bg-card border border-border rounded-xl shadow-card p-4">
