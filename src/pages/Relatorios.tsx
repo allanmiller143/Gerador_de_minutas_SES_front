@@ -10,10 +10,9 @@ const tipos = [
 ];
 
 const porStatus = [
-  { status: "Pendente", qtd: 47 },
-  { status: "Em elaboração", qtd: 12 },
-  { status: "Em revisão", qtd: 8 },
-  { status: "Aprovada", qtd: 32 },
+  { status: "Pré-analisado (IA)", qtd: 47 },
+  { status: "Em revisão", qtd: 12 },
+  { status: "Revisado", qtd: 32 },
   { status: "Enviado", qtd: 88 },
 ];
 

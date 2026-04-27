@@ -19,8 +19,9 @@ const SeiDetail = () => {
 
   const historico = [
     { data: sei.dataRecebimento, evento: "SEI recebido", ator: "Sistema" },
-    ...(sei.status !== "Pendente" ? [{ data: sei.dataRecebimento, evento: "Análise iniciada", ator: sei.analista ?? "Analista" }] : []),
-    ...(sei.dataAnalise ? [{ data: sei.dataAnalise, evento: `Status atualizado para ${sei.status}`, ator: sei.analista ?? "Analista" }] : []),
+    { data: sei.dataPreAnalise, evento: "Pré-análise concluída pela IA", ator: "IA · Farmácia SES" },
+    ...(sei.status === "Em revisão" ? [{ data: sei.dataPreAnalise, evento: "Revisão humana iniciada", ator: sei.analista ?? "Analista" }] : []),
+    ...(sei.dataRevisao ? [{ data: sei.dataRevisao, evento: `Status atualizado para ${sei.status}`, ator: sei.analista ?? "Analista" }] : []),
   ];
 
   return (

@@ -5,7 +5,7 @@ import { PriorityBadge, StatusBadge } from "@/components/shared/Badges";
 import { Button } from "@/components/ui/button";
 
 const MinhasAnalises = () => {
-  const minhas = seis.filter((s) => s.analista === "Mariana Costa" || s.status === "Em elaboração");
+  const minhas = seis.filter((s) => s.analista === "Mariana Costa" || s.status === "Em revisão");
   return (
     <AppLayout title="Minhas Análises" subtitle="SEIs sob sua responsabilidade">
       <div className="bg-card border border-border rounded-xl shadow-card overflow-hidden">
