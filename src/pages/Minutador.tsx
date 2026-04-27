@@ -36,17 +36,23 @@ const Minutador = () => {
     [sei.id]
   );
 
+  // Admin edita em nome do analista original (preserva autoria). Usuário comum salva como dono.
+  const effectiveOwnerEmail = isAdmin && existingDraft ? existingDraft.ownerEmail : user?.email ?? "";
+  const effectiveOwnerName = isAdmin && existingDraft ? existingDraft.ownerName : user?.name ?? "";
+
   const handleSaveDraft = () => {
     if (!user) return;
     if (isLockedByOther) { toast.error("Esta análise pertence a outro usuário."); return; }
-    saveDraft({ seiId: sei.id, minuta, ownerEmail: user.email, ownerName: user.name });
-    toast.success("Rascunho salvo com sucesso.");
+    saveDraft({ seiId: sei.id, minuta, ownerEmail: effectiveOwnerEmail, ownerName: effectiveOwnerName });
+    toast.success(isAdmin && existingDraft && existingDraft.ownerEmail !== user.email
+      ? `Rascunho salvo (edição administrativa em nome de ${existingDraft.ownerName}).`
+      : "Rascunho salvo com sucesso.");
   };
 
   const handleFinalize = () => {
     if (!user) return;
     if (isLockedByOther) { toast.error("Esta análise pertence a outro usuário."); return; }
-    saveDraft({ seiId: sei.id, minuta, ownerEmail: user.email, ownerName: user.name });
+    saveDraft({ seiId: sei.id, minuta, ownerEmail: effectiveOwnerEmail, ownerName: effectiveOwnerName });
     finalizeDraft(sei.id, user.name);
     toast.success("Análise finalizada e marcada como concluída.");
   };
