@@ -1,13 +1,12 @@
 export type Priority = "Alta" | "Média" | "Baixa";
 // Fluxo: todo SEI entra e é PRÉ-ANALISADO pela IA automaticamente.
-// O humano apenas revisa e salva/envia.
+// O humano apenas revisa e finaliza.
 export type SeiStatus =
   | "Pré-analisado (IA)"   // IA terminou, aguarda revisão humana
-  | "Em revisão"            // humano começou a revisar
-  | "Revisado"              // humano salvou a revisão
-  | "Enviado";              // resposta oficial encaminhada
+  | "Em revisão"            // humano começou a revisar (rascunho salvo)
+  | "Concluído";            // humano finalizou a análise
 
-export type UserRole = "analista" | "revisor" | "administrador";
+export type UserRole = "analista" | "administrador";
 
 export interface Sei {
   id: string;
