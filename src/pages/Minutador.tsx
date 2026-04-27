@@ -112,6 +112,12 @@ const Minutador = () => {
               Esta análise já foi finalizada.
             </div>
           )}
+          {isAdmin && existingDraft && user && existingDraft.ownerEmail !== user.email && !isFinalized && (
+            <div className="mb-4 rounded-lg border border-primary/30 bg-accent/60 text-accent-foreground px-4 py-3 text-sm flex items-center gap-2">
+              <Lock className="h-4 w-4 text-primary" />
+              Edição administrativa: você está modificando a análise de <strong className="mx-1">{existingDraft.ownerName}</strong>. A autoria será preservada.
+            </div>
+          )}
 
           <div className="flex items-center justify-between mb-4">
             <div>
