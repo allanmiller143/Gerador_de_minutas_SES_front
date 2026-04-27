@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/context/AuthContext";
+import { DraftsProvider } from "@/context/DraftsContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index.tsx";
 import Login from "./pages/Login.tsx";
@@ -25,18 +26,20 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-            <Route path="/seis" element={<ProtectedRoute><SeisList /></ProtectedRoute>} />
-            <Route path="/seis/:id" element={<ProtectedRoute><SeiDetail /></ProtectedRoute>} />
-            <Route path="/minutador/:id" element={<ProtectedRoute><Minutador /></ProtectedRoute>} />
-            <Route path="/minhas-analises" element={<ProtectedRoute><MinhasAnalises /></ProtectedRoute>} />
-            <Route path="/jurisprudencias" element={<ProtectedRoute><Jurisprudencias /></ProtectedRoute>} />
-            <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
-            <Route path="/configuracoes" element={<ProtectedRoute roles={["administrador"]}><Configuracoes /></ProtectedRoute>} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <DraftsProvider>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+              <Route path="/seis" element={<ProtectedRoute><SeisList /></ProtectedRoute>} />
+              <Route path="/seis/:id" element={<ProtectedRoute><SeiDetail /></ProtectedRoute>} />
+              <Route path="/minutador/:id" element={<ProtectedRoute><Minutador /></ProtectedRoute>} />
+              <Route path="/minhas-analises" element={<ProtectedRoute><MinhasAnalises /></ProtectedRoute>} />
+              <Route path="/jurisprudencias" element={<ProtectedRoute><Jurisprudencias /></ProtectedRoute>} />
+              <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
+              <Route path="/configuracoes" element={<ProtectedRoute roles={["administrador"]}><Configuracoes /></ProtectedRoute>} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </DraftsProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

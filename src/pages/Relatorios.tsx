@@ -12,8 +12,7 @@ const tipos = [
 const porStatus = [
   { status: "Pré-analisado (IA)", qtd: 47 },
   { status: "Em revisão", qtd: 12 },
-  { status: "Revisado", qtd: 32 },
-  { status: "Enviado", qtd: 88 },
+  { status: "Concluído", qtd: 120 },
 ];
 
 const Relatorios = () => (

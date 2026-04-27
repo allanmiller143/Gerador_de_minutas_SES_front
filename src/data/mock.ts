@@ -1,13 +1,12 @@
 export type Priority = "Alta" | "Média" | "Baixa";
 // Fluxo: todo SEI entra e é PRÉ-ANALISADO pela IA automaticamente.
-// O humano apenas revisa e salva/envia.
+// O humano apenas revisa e finaliza.
 export type SeiStatus =
   | "Pré-analisado (IA)"   // IA terminou, aguarda revisão humana
-  | "Em revisão"            // humano começou a revisar
-  | "Revisado"              // humano salvou a revisão
-  | "Enviado";              // resposta oficial encaminhada
+  | "Em revisão"            // humano começou a revisar (rascunho salvo)
+  | "Concluído";            // humano finalizou a análise
 
-export type UserRole = "analista" | "revisor" | "administrador";
+export type UserRole = "analista" | "administrador";
 
 export interface Sei {
   id: string;
@@ -131,7 +130,7 @@ export const seis: Sei[] = [
     dataPreAnalise: "10/05/2024",
     dataRevisao: "20/05/2024",
     prioridade: "Média",
-    status: "Revisado",
+    status: "Concluído",
     analista: "Mariana Costa",
     resumo: "Revisado pela analista, pronto para envio.",
     iaConfidence: 0.9,
@@ -146,7 +145,7 @@ export const seis: Sei[] = [
     dataPreAnalise: "08/05/2024",
     dataRevisao: "18/05/2024",
     prioridade: "Alta",
-    status: "Enviado",
+    status: "Concluído",
     analista: "Rafael Souza",
     resumo: "Resposta oficial já encaminhada.",
     iaConfidence: 0.95,
@@ -161,7 +160,7 @@ export const seis: Sei[] = [
     dataPreAnalise: "05/05/2024",
     dataRevisao: "16/05/2024",
     prioridade: "Baixa",
-    status: "Enviado",
+    status: "Concluído",
     analista: "Mariana Costa",
     resumo: "Insumo conforme protocolo.",
     iaConfidence: 0.87,
@@ -176,7 +175,7 @@ export const seis: Sei[] = [
     dataPreAnalise: "03/05/2024",
     dataRevisao: "14/05/2024",
     prioridade: "Média",
-    status: "Revisado",
+    status: "Concluído",
     analista: "Rafael Souza",
     resumo: "Revisado e aguardando envio.",
     iaConfidence: 0.82,
@@ -240,7 +239,6 @@ export const jurisprudencias: Jurisprudencia[] = [
 export const metrics = {
   preAnalisadosIA: seis.filter((s) => s.status === "Pré-analisado (IA)").length,
   emRevisaoHumana: seis.filter((s) => s.status === "Em revisão").length,
-  revisados: seis.filter((s) => s.status === "Revisado").length,
-  enviados: seis.filter((s) => s.status === "Enviado").length,
+  concluidos: seis.filter((s) => s.status === "Concluído").length,
   total: seis.length,
 };

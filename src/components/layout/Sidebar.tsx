@@ -9,7 +9,7 @@ const items: { to: string; label: string; icon: typeof Home; end?: boolean; role
   { to: "/seis", label: "SEIs", icon: FileText },
   { to: "/minhas-analises", label: "Minhas Análises", icon: ClipboardList },
   { to: "/jurisprudencias", label: "Jurisprudências", icon: Scale },
-  { to: "/relatorios", label: "Relatórios", icon: BarChart3, roles: ["revisor", "administrador"] },
+  { to: "/relatorios", label: "Relatórios", icon: BarChart3, roles: ["administrador"] },
   { to: "/configuracoes", label: "Configurações", icon: Settings, roles: ["administrador"] },
 ];
 

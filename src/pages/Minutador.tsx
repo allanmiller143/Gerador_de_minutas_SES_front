@@ -3,9 +3,11 @@ import { Link, useParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { seis, jurisprudencias } from "@/data/mock";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Check, FileText, Loader2, Send, Save } from "lucide-react";
+import { ArrowLeft, Check, FileText, Loader2, CheckCircle2, Save, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import { useDrafts } from "@/context/DraftsContext";
 
 const etapas = ["Analisando processo", "Buscando jurisprudências", "Gerando minuta", "Revisão humana"];
 
@@ -20,14 +22,25 @@ const processingSteps = [
 const Minutador = () => {
   const { id } = useParams();
   const sei = seis.find((s) => s.id === id) ?? seis[0];
+  const { user } = useAuth();
+  const { getDraft, saveDraft, finalizeDraft } = useDrafts();
 
-  const [progress, setProgress] = useState(0);
-  const [currentStep, setCurrentStep] = useState(0);
-  const [etapa, setEtapa] = useState(0);
-  const [minuta, setMinuta] = useState("");
+  const existingDraft = getDraft(sei.id);
+  const skipLoading = !!existingDraft; // já tem rascunho → não reprocessa
 
-  // Simula o processamento da IA
+  const [progress, setProgress] = useState(skipLoading ? 100 : 0);
+  const [currentStep, setCurrentStep] = useState(skipLoading ? processingSteps.length - 1 : 0);
+  const [etapa, setEtapa] = useState(skipLoading ? 3 : 0);
+  const [minuta, setMinuta] = useState(existingDraft?.minuta ?? "");
+
+  // Trava: se o rascunho pertence a outro usuário, bloquear edição
+  const isLockedByOther = !!existingDraft && !!user && existingDraft.ownerEmail !== user.email;
+  const isFinalized = existingDraft?.status === "Concluído";
+  const readOnly = isLockedByOther || isFinalized;
+
+  // Simula o processamento da IA (só quando não há rascunho)
   useEffect(() => {
+    if (skipLoading) return;
     setProgress(0);
     setCurrentStep(0);
     setEtapa(0);
@@ -50,10 +63,43 @@ const Minutador = () => {
       });
     }, 180);
     return () => clearInterval(interval);
-  }, [sei.numero, sei.assunto]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sei.numero, sei.assunto, skipLoading]);
 
   const done = progress >= 100;
   const juris = useMemo(() => jurisprudencias.slice(0, 3), []);
+
+  const handleSaveDraft = () => {
+    if (!user) return;
+    if (isLockedByOther) {
+      toast.error("Esta análise pertence a outro usuário.");
+      return;
+    }
+    saveDraft({
+      seiId: sei.id,
+      minuta,
+      ownerEmail: user.email,
+      ownerName: user.name,
+    });
+    toast.success("Rascunho salvo com sucesso.");
+  };
+
+  const handleFinalize = () => {
+    if (!user) return;
+    if (isLockedByOther) {
+      toast.error("Esta análise pertence a outro usuário.");
+      return;
+    }
+    // Garante que existe rascunho antes de finalizar
+    saveDraft({
+      seiId: sei.id,
+      minuta,
+      ownerEmail: user.email,
+      ownerName: user.name,
+    });
+    finalizeDraft(sei.id);
+    toast.success("Análise finalizada e marcada como concluída.");
+  };
 
   return (
     <AppLayout title="Minutador de Resposta" subtitle={`SEI: ${sei.numero}`}>
@@ -155,22 +201,50 @@ const Minutador = () => {
         </div>
       ) : (
         <section className="bg-card border border-border rounded-xl shadow-card p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold">Minuta gerada – pronta para revisão</h2>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => toast.success("Rascunho salvo")}>
-                <Save className="h-4 w-4 mr-2" /> Salvar rascunho
-              </Button>
-              <Button size="sm" onClick={() => toast.success("Minuta enviada para revisão do coordenador")}>
-                <Send className="h-4 w-4 mr-2" /> Enviar para revisão
-              </Button>
+          {isLockedByOther && (
+            <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive px-4 py-3 text-sm flex items-center gap-2">
+              <Lock className="h-4 w-4" />
+              Esta análise está sob responsabilidade de <strong className="mx-1">{existingDraft?.ownerName}</strong>. Você pode visualizar, mas não editar.
             </div>
+          )}
+          {isFinalized && !isLockedByOther && (
+            <div className="mb-4 rounded-lg border border-success/30 bg-success/10 text-success px-4 py-3 text-sm flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4" />
+              Esta análise já foi finalizada.
+            </div>
+          )}
+
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="font-semibold">
+                {isFinalized ? "Minuta finalizada" : readOnly ? "Minuta (somente leitura)" : "Minuta – pronta para edição"}
+              </h2>
+              {existingDraft && (
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Última atualização por {existingDraft.ownerName} em {new Date(existingDraft.updatedAt).toLocaleString("pt-BR")}
+                </p>
+              )}
+            </div>
+            {!readOnly && (
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={handleSaveDraft}>
+                  <Save className="h-4 w-4 mr-2" /> Salvar rascunho
+                </Button>
+                <Button size="sm" onClick={handleFinalize}>
+                  <CheckCircle2 className="h-4 w-4 mr-2" /> Finalizar análise
+                </Button>
+              </div>
+            )}
           </div>
 
           <textarea
             value={minuta}
             onChange={(e) => setMinuta(e.target.value)}
-            className="w-full min-h-[420px] border border-border rounded-lg p-4 text-sm font-mono leading-relaxed bg-background focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+            readOnly={readOnly}
+            className={cn(
+              "w-full min-h-[420px] border border-border rounded-lg p-4 text-sm font-mono leading-relaxed bg-background focus:outline-none focus:ring-2 focus:ring-ring resize-y",
+              readOnly && "bg-secondary/40 cursor-not-allowed"
+            )}
           />
 
           <div className="mt-4 p-4 bg-accent/40 rounded-lg">
