@@ -19,13 +19,11 @@ const STORAGE_KEY = "ses_auth_user";
 
 export const roleLabel: Record<UserRole, string> = {
   analista: "Analista",
-  revisor: "Revisor",
   administrador: "Administrador",
 };
 
 export const demoUsers: Record<UserRole, AuthUser> = {
   analista: { name: "Mariana Costa", email: "mariana.costa@ses.sp.gov.br", role: "analista" },
-  revisor: { name: "Rafael Souza", email: "rafael.souza@ses.sp.gov.br", role: "revisor" },
   administrador: { name: "Paula Mendes", email: "paula.mendes@ses.sp.gov.br", role: "administrador" },
 };
 

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search } from "lucide-react";
 
-const statusOptions: (SeiStatus | "Todos")[] = ["Todos", "Pré-analisado (IA)", "Em revisão", "Revisado", "Enviado"];
+const statusOptions: (SeiStatus | "Todos")[] = ["Todos", "Pré-analisado (IA)", "Em revisão", "Concluído"];
 
 const SeisList = () => {
   const [q, setQ] = useState("");

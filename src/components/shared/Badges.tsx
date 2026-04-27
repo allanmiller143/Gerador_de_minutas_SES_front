@@ -19,8 +19,7 @@ export const StatusBadge = ({ value }: { value: SeiStatus }) => {
   const map: Record<SeiStatus, string> = {
     "Pré-analisado (IA)": "bg-accent text-accent-foreground",
     "Em revisão": "bg-priority-medium-bg text-priority-medium",
-    Revisado: "bg-priority-low-bg text-priority-low",
-    Enviado: "bg-primary/10 text-primary",
+    "Concluído": "bg-priority-low-bg text-priority-low",
   };
   return (
     <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold", map[value])}>

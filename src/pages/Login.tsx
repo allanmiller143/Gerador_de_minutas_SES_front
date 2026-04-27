@@ -9,8 +9,7 @@ import { useAuth, demoUsers, roleLabel } from "@/context/AuthContext";
 import type { UserRole } from "@/data/mock";
 
 const roleCards: { role: UserRole; icon: typeof UserCheck; desc: string }[] = [
-  { role: "analista", icon: UserCheck, desc: "Revisa as pré-análises geradas pela IA e salva a minuta." },
-  { role: "revisor", icon: ShieldCheck, desc: "Aprova minutas revisadas antes do envio oficial." },
+  { role: "analista", icon: UserCheck, desc: "Revisa as pré-análises geradas pela IA, edita e finaliza a minuta." },
   { role: "administrador", icon: Users, desc: "Gerencia usuários, perfis e configurações do sistema." },
 ];
 
@@ -79,7 +78,7 @@ const Login = () => {
           <h1 className="text-2xl font-bold mb-1">Acessar o sistema</h1>
           <p className="text-sm text-muted-foreground mb-6">Selecione seu perfil e entre com suas credenciais.</p>
 
-          <div className="grid grid-cols-3 gap-2 mb-6">
+          <div className="grid grid-cols-2 gap-2 mb-6">
             {roleCards.map(({ role: r, icon: Icon }) => (
               <button
                 key={r}

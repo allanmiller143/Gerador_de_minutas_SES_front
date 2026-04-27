@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 const Dashboard = () => {
   const preAnalisados = seis.filter((s) => s.status === "Pré-analisado (IA)");
   const emRevisao = seis.filter((s) => s.status === "Em revisão");
-  const revisadosHumanos = seis.filter((s) => s.status === "Revisado" || s.status === "Enviado").slice(0, 4);
+  const revisadosHumanos = seis.filter((s) => s.status === "Concluído").slice(0, 4);
 
   return (
     <AppLayout title="Dashboard" subtitle="Visão geral da análise de processos">
@@ -30,7 +30,7 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <MetricCard label="Pré-analisados pela IA" value={metrics.preAnalisadosIA} hint="Aguardando revisão humana" icon={Bot} tone="info" />
         <MetricCard label="Em revisão humana" value={metrics.emRevisaoHumana} hint="Revisão em andamento" tone="warning" icon={UserCheck} />
-        <MetricCard label="Revisados" value={metrics.revisados} hint="Prontos para envio" icon={Send} tone="success" />
+        <MetricCard label="Concluídos" value={metrics.concluidos} hint="Análises finalizadas" icon={Send} tone="success" />
         <MetricCard label="Total no sistema" value={metrics.total} hint="Todos os SEIs" icon={FileStack} tone="primary" />
       </div>
 
