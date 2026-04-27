@@ -2,15 +2,19 @@ import { Link } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MetricCard } from "@/components/shared/MetricCard";
 import { PriorityBadge, StatusBadge, OriginBadge } from "@/components/shared/Badges";
-import { metrics, seis } from "@/data/mock";
+import { seis, getEffectiveList, computeMetrics } from "@/data/mock";
 import { Bot, UserCheck, Send, FileStack, ArrowRight, Eye, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { useDrafts } from "@/context/DraftsContext";
 
 const Dashboard = () => {
-  const preAnalisados = seis.filter((s) => s.status === "Pré-analisado (IA)");
-  const emRevisao = seis.filter((s) => s.status === "Em revisão");
-  const revisadosHumanos = seis.filter((s) => s.status === "Concluído").slice(0, 4);
+  const { drafts } = useDrafts();
+  const effective = getEffectiveList(seis, drafts);
+  const metrics = computeMetrics(effective);
+  const preAnalisados = effective.filter((s) => s.status === "Pré-analisado (IA)");
+  const emRevisao = effective.filter((s) => s.status === "Em revisão");
+  const revisadosHumanos = effective.filter((s) => s.status === "Concluído").slice(0, 4);
 
   return (
     <AppLayout title="Dashboard" subtitle="Visão geral da análise de processos">
