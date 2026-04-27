@@ -101,14 +101,19 @@ export const DraftsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const finalizeDraft = (seiId: string, actor: string) => {
-    const existing = drafts[seiId];
-    if (!existing) return;
     const now = new Date().toISOString();
-    persistDrafts({
-      ...drafts,
-      [seiId]: { ...existing, status: "Concluído", updatedAt: now },
+    setDrafts((prev) => {
+      const existing = prev[seiId];
+      if (!existing) return prev;
+      const next = { ...prev, [seiId]: { ...existing, status: "Concluído" as const, updatedAt: now } };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      return next;
     });
-    addEvent({ seiId, type: "finalized", actor, at: now, detail: "Análise finalizada" }, events);
+    setEvents((prev) => {
+      const next = [...prev, { seiId, type: "finalized" as const, actor, at: now, detail: "Análise finalizada" }];
+      localStorage.setItem(EVENTS_KEY, JSON.stringify(next));
+      return next;
+    });
   };
 
   const changePriority: DraftsContextValue["changePriority"] = (seiId, priority, actor, actorEmail, previous) => {
