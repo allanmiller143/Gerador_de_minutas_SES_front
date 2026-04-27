@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { useDrafts } from "@/context/DraftsContext";
 
-const etapas = ["Pré-análise IA", "Jurisprudências", "Minuta gerada", "Revisão humana"];
+const etapas = ["Pré-análise", "Jurisprudências", "Minuta gerada", "Revisão humana"];
 
 const Minutador = () => {
   const { id } = useParams();

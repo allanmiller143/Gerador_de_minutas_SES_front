@@ -84,7 +84,7 @@ const SeiDetail = () => {
               <div><dt className="text-xs text-muted-foreground">Assunto</dt><dd>{sei.assunto}</dd></div>
               <div><dt className="text-xs text-muted-foreground">Partes</dt><dd>{sei.partes ?? "—"}</dd></div>
               <div><dt className="text-xs text-muted-foreground">Recebimento</dt><dd>{sei.dataRecebimento}</dd></div>
-              <div><dt className="text-xs text-muted-foreground">Pré-análise IA</dt><dd>{sei.dataPreAnalise}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Pré-análise</dt><dd>{sei.dataPreAnalise}</dd></div>
               <div><dt className="text-xs text-muted-foreground">Revisado em</dt><dd>{sei.dataRevisao ?? "—"}</dd></div>
               <div><dt className="text-xs text-muted-foreground">Prioridade</dt><dd><PriorityBadge value={sei.prioridade} /></dd></div>
               <div><dt className="text-xs text-muted-foreground">Status</dt><dd className="flex items-center gap-2"><StatusBadge value={sei.status} /><OriginBadge origin={sei.status === "Concluído" ? "humano" : "ia"} /></dd></div>
