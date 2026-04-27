@@ -235,10 +235,45 @@ export const jurisprudencias: Jurisprudencia[] = [
   },
 ];
 
-// Métricas derivadas
-export const metrics = {
-  preAnalisadosIA: seis.filter((s) => s.status === "Pré-analisado (IA)").length,
-  emRevisaoHumana: seis.filter((s) => s.status === "Em revisão").length,
-  concluidos: seis.filter((s) => s.status === "Concluído").length,
-  total: seis.length,
-};
+/**
+ * Fonte de verdade para o status "vivo" de um SEI: se houver um rascunho no
+ * DraftsContext, ele sobrescreve o status/analista/data do mock. Isso garante
+ * que todas as telas (Início, SEIs, Detalhe, Minhas Análises) reflitam as
+ * edições salvas de qualquer usuário.
+ */
+export interface DraftLike {
+  seiId: string;
+  ownerName: string;
+  ownerEmail: string;
+  status: "Em revisão" | "Concluído";
+  updatedAt: string;
+}
+
+export function getEffectiveSei(sei: Sei, drafts: Record<string, DraftLike>): Sei {
+  const d = drafts[sei.id];
+  if (!d) return sei;
+  return {
+    ...sei,
+    status: d.status,
+    analista: d.ownerName,
+    dataRevisao: d.status === "Concluído"
+      ? new Date(d.updatedAt).toLocaleDateString("pt-BR")
+      : sei.dataRevisao,
+  };
+}
+
+export function getEffectiveList(list: Sei[], drafts: Record<string, DraftLike>): Sei[] {
+  return list.map((s) => getEffectiveSei(s, drafts));
+}
+
+export function computeMetrics(list: Sei[]) {
+  return {
+    preAnalisadosIA: list.filter((s) => s.status === "Pré-analisado (IA)").length,
+    emRevisaoHumana: list.filter((s) => s.status === "Em revisão").length,
+    concluidos: list.filter((s) => s.status === "Concluído").length,
+    total: list.length,
+  };
+}
+
+// Métricas estáticas (fallback, sem drafts)
+export const metrics = computeMetrics(seis);

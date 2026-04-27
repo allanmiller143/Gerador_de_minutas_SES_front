@@ -1,13 +1,16 @@
 import { Link, useParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { seis } from "@/data/mock";
+import { seis, getEffectiveSei } from "@/data/mock";
 import { PriorityBadge, StatusBadge } from "@/components/shared/Badges";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, FileEdit, PlayCircle } from "lucide-react";
+import { useDrafts } from "@/context/DraftsContext";
 
 const SeiDetail = () => {
   const { id } = useParams();
-  const sei = seis.find((s) => s.id === id);
+  const { drafts } = useDrafts();
+  const base = seis.find((s) => s.id === id);
+  const sei = base ? getEffectiveSei(base, drafts) : undefined;
 
   if (!sei) {
     return (

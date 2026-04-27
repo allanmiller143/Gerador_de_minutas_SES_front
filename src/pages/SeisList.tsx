@@ -2,25 +2,27 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PriorityBadge, StatusBadge } from "@/components/shared/Badges";
-import { seis, type SeiStatus } from "@/data/mock";
+import { seis, getEffectiveList, type SeiStatus } from "@/data/mock";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search } from "lucide-react";
+import { useDrafts } from "@/context/DraftsContext";
 
 const statusOptions: (SeiStatus | "Todos")[] = ["Todos", "Pré-analisado (IA)", "Em revisão", "Concluído"];
 
 const SeisList = () => {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("Todos");
+  const { drafts } = useDrafts();
 
   const filtered = useMemo(() => {
-    return seis.filter((s) => {
+    return getEffectiveList(seis, drafts).filter((s) => {
       const matchQ = !q || s.numero.includes(q) || s.assunto.toLowerCase().includes(q.toLowerCase());
       const matchS = status === "Todos" || s.status === status;
       return matchQ && matchS;
     });
-  }, [q, status]);
+  }, [q, status, drafts]);
 
   return (
     <AppLayout title="SEIs" subtitle="Processos SEI cadastrados no sistema">
