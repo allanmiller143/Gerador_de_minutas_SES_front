@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 import type { UserRole } from "@/data/mock";
+import { api, tokenStore, ApiError } from "@/lib/api";
 
 export interface AuthUser {
   name: string;
@@ -9,44 +10,112 @@ export interface AuthUser {
 
 interface AuthContextValue {
   user: AuthUser | null;
-  login: (user: AuthUser) => void;
+  loading: boolean;
+  login: (username: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const STORAGE_KEY = "ses_auth_user";
+const USER_KEY = "ses_auth_user";
 
 export const roleLabel: Record<UserRole, string> = {
   analista: "Analista",
   administrador: "Administrador",
 };
 
-export const demoUsers: Record<UserRole, AuthUser> = {
-  analista: { name: "Mariana Costa", email: "mariana.costa@ses.sp.gov.br", role: "analista" },
-  administrador: { name: "Paula Mendes", email: "paula.mendes@ses.sp.gov.br", role: "administrador" },
+// Mapeamento de roles backend <-> frontend
+const mapBackendRole = (roles: string[] | undefined): UserRole => {
+  if (!roles) return "analista";
+  if (roles.includes("admin") || roles.includes("administrador")) return "administrador";
+  return "analista";
 };
+
+// Compat com código antigo que importava demoUsers
+export const demoUsers: Record<UserRole, AuthUser> = {
+  analista: { name: "Analista", email: "", role: "analista" },
+  administrador: { name: "Administrador", email: "", role: "administrador" },
+};
+
+interface ProtectedResponse {
+  logged_in_as: string;
+  roles: string[];
+  email?: string;
+  name?: string;
+}
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      try { setUser(JSON.parse(raw)); } catch { /* noop */ }
+  const persistUser = (u: AuthUser | null) => {
+    if (u) localStorage.setItem(USER_KEY, JSON.stringify(u));
+    else localStorage.removeItem(USER_KEY);
+  };
+
+  const fetchMe = useCallback(async (): Promise<AuthUser | null> => {
+    try {
+      const data = await api<ProtectedResponse>("/auth/protected");
+      const u: AuthUser = {
+        name: data.name || data.logged_in_as,
+        email: data.email || "",
+        role: mapBackendRole(data.roles),
+      };
+      setUser(u);
+      persistUser(u);
+      return u;
+    } catch {
+      return null;
     }
   }, []);
 
-  const login = (u: AuthUser) => {
-    setUser(u);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
-  };
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem(STORAGE_KEY);
+  // Bootstrap: se há token, valida; senão usa cache
+  useEffect(() => {
+    (async () => {
+      const access = tokenStore.getAccess();
+      const cached = localStorage.getItem(USER_KEY);
+      if (cached) {
+        try { setUser(JSON.parse(cached)); } catch { /* noop */ }
+      }
+      if (access) await fetchMe();
+      setLoading(false);
+    })();
+  }, [fetchMe]);
+
+  // Listener para 401 disparado pelo cliente HTTP
+  useEffect(() => {
+    const onUnauth = () => {
+      setUser(null);
+      persistUser(null);
+    };
+    window.addEventListener("ses:unauthorized", onUnauth);
+    return () => window.removeEventListener("ses:unauthorized", onUnauth);
+  }, []);
+
+  const login = async (username: string, password: string) => {
+    const data = await api<{ access_token: string; refresh_token: string }>(
+      "/auth/login",
+      { method: "POST", body: { username, password }, auth: false }
+    );
+    if (!data?.access_token) {
+      throw new ApiError("Resposta inválida do servidor", 500, data);
+    }
+    tokenStore.set(data.access_token, data.refresh_token);
+    const me = await fetchMe();
+    if (!me) throw new ApiError("Não foi possível carregar perfil do usuário", 500, null);
   };
 
-  return <AuthContext.Provider value={{ user, login, logout }}>{children}</AuthContext.Provider>;
+  const logout = () => {
+    tokenStore.clear();
+    setUser(null);
+    persistUser(null);
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => {
