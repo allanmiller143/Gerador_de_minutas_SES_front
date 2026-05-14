@@ -12,7 +12,7 @@ import { Eye, EyeOff } from "lucide-react";
 const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -21,7 +21,7 @@ const Login = () => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await login(username, password);
+      await login(email, password);
       toast.success("Login realizado com sucesso");
       navigate("/");
     } catch (err) {
@@ -87,13 +87,13 @@ const Login = () => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="username">Usuário</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="username"
-                type="text"
-                autoComplete="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                id="email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>

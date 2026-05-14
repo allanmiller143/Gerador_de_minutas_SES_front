@@ -92,10 +92,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => window.removeEventListener("ses:unauthorized", onUnauth);
   }, []);
 
-  const login = async (username: string, password: string) => {
+  const login = async (email: string, password: string) => {
     const data = await api<{ access_token: string; refresh_token: string }>(
       "/auth/login",
-      { method: "POST", body: { username, password }, auth: false }
+      { method: "POST", body: { email, password }, auth: false }
     );
     if (!data?.access_token) {
       throw new ApiError("Resposta inválida do servidor", 500, data);
