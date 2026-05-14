@@ -1,35 +1,38 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Pill, ShieldCheck, UserCheck, Users } from "lucide-react";
+import { Pill, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { useAuth, demoUsers, roleLabel } from "@/context/AuthContext";
-import type { UserRole } from "@/data/mock";
-
-const roleCards: { role: UserRole; icon: typeof UserCheck; desc: string }[] = [
-  { role: "analista", icon: UserCheck, desc: "Revisa as pré-análises geradas pela IA, edita e finaliza a minuta." },
-  { role: "administrador", icon: Users, desc: "Gerencia usuários, perfis e configurações do sistema." },
-];
+import { useAuth } from "@/context/AuthContext";
+import { ApiError, API_BASE_URL } from "@/lib/api";
+import { toast } from "sonner";
 
 const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const [role, setRole] = useState<UserRole>("analista");
-  const [email, setEmail] = useState(demoUsers.analista.email);
-  const [password, setPassword] = useState("demo1234");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleRole = (r: UserRole) => {
-    setRole(r);
-    setEmail(demoUsers[r].email);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const base = demoUsers[role];
-    login({ ...base, email });
-    navigate("/");
+    setSubmitting(true);
+    try {
+      await login(username, password);
+      toast.success("Login realizado com sucesso");
+      navigate("/");
+    } catch (err) {
+      const msg =
+        err instanceof ApiError
+          ? err.status === 401
+            ? "Usuário ou senha inválidos"
+            : err.message
+          : "Não foi possível conectar ao servidor";
+      toast.error(msg);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -52,11 +55,11 @@ const Login = () => {
             Assistência Farmacêutica com apoio de IA.
           </h2>
           <p className="text-sidebar-foreground/70 leading-relaxed">
-            A IA pré-analisa todos os processos SEI assim que chegam. Você apenas revisa, ajusta e salva — ganhando tempo e padronização nas respostas.
+            A IA pré-analisa todos os processos SEI assim que chegam. Você apenas revisa, ajusta e salva.
           </p>
         </div>
         <div className="relative z-10 text-xs text-sidebar-foreground/50">
-          Secretaria Estadual de Saúde · Ambiente de demonstração
+          Secretaria Estadual de Saúde
         </div>
         <div className="absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-sidebar-primary/10 blur-3xl" />
         <div className="absolute -top-20 -left-20 h-72 w-72 rounded-full bg-sidebar-primary/10 blur-3xl" />
@@ -76,47 +79,41 @@ const Login = () => {
           </div>
 
           <h1 className="text-2xl font-bold mb-1">Acessar o sistema</h1>
-          <p className="text-sm text-muted-foreground mb-6">Selecione seu perfil e entre com suas credenciais.</p>
-
-          <div className="grid grid-cols-2 gap-2 mb-6">
-            {roleCards.map(({ role: r, icon: Icon }) => (
-              <button
-                key={r}
-                type="button"
-                onClick={() => handleRole(r)}
-                className={cn(
-                  "flex flex-col items-center gap-1.5 p-3 rounded-lg border text-xs font-medium transition-all",
-                  role === r
-                    ? "border-primary bg-accent text-accent-foreground ring-2 ring-primary/30"
-                    : "border-border bg-card hover:border-primary/40"
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {roleLabel[r]}
-              </button>
-            ))}
-          </div>
-
-          <p className="text-xs text-muted-foreground -mt-3 mb-6">
-            {roleCards.find((c) => c.role === role)?.desc}
+          <p className="text-sm text-muted-foreground mb-6">
+            Entre com suas credenciais institucionais.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="email">E-mail institucional</Label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <Label htmlFor="username">Usuário</Label>
+              <Input
+                id="username"
+                type="text"
+                autoComplete="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="password">Senha</Label>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              <Input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
             </div>
-            <Button type="submit" className="w-full bg-gradient-primary">
-              Entrar como {roleLabel[role]}
+            <Button type="submit" className="w-full bg-gradient-primary" disabled={submitting}>
+              {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Entrar
             </Button>
           </form>
 
           <div className="mt-6 rounded-lg border border-dashed border-border bg-secondary/40 p-3 text-xs text-muted-foreground">
-            <strong className="text-foreground">Ambiente de demonstração.</strong> Qualquer e-mail/senha é aceito; o perfil selecionado define o nível de acesso.
+            <strong className="text-foreground">API:</strong> {API_BASE_URL}
           </div>
         </div>
       </div>
