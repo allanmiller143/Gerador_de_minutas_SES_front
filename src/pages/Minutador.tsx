@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { useSeiDetail } from "@/services/domainData";
+import { useSeiDetail, useSeiResumoTecnico } from "@/services/domainData";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Check, CheckCircle2, Save, Lock, Bot, Scale } from "lucide-react";
@@ -15,6 +15,11 @@ const etapas = ["Pré-análise", "Jurisprudências", "Minuta gerada", "Revisão 
 const Minutador = () => {
   const { id } = useParams();
   const { data, isLoading, error } = useSeiDetail(id);
+  const {
+    data: resumoData,
+    isLoading: isResumoLoading,
+    error: resumoError,
+  } = useSeiResumoTecnico(id);
   const sei = data?.sei;
   const { user } = useAuth();
   const { getDraft, saveDraft, finalizeDraft } = useDrafts();
@@ -25,8 +30,8 @@ const Minutador = () => {
 
   useEffect(() => {
     if (!sei) return;
-    setMinuta(existingDraft?.minuta ?? data?.minuta ?? "");
-  }, [data?.minuta, existingDraft?.minuta, sei]);
+    setMinuta(existingDraft?.minuta ?? resumoData?.minuta ?? data?.minuta ?? "");
+  }, [data?.minuta, existingDraft?.minuta, resumoData?.minuta, sei]);
 
   const isAdmin = user?.role === "administrador";
   const isLockedByOther = !!existingDraft && !!user && existingDraft.ownerEmail !== user.email && !isAdmin;
@@ -40,7 +45,7 @@ const Minutador = () => {
     () => data?.jurisprudencias ?? [],
     [data?.jurisprudencias]
   );
-  const resumoTecnico = data?.resumoTecnico;
+  const resumoTecnico = resumoData?.resumoTecnico;
   const resumoProcesso = resumoTecnico?.resumo_processo;
   const confronto = resumoTecnico?.confronto_documentacao_suporte;
   const insumoParecer = resumoTecnico?.insumo_parecer;
@@ -149,7 +154,13 @@ const Minutador = () => {
             <TabsContent value="resumo" className="mt-0">
               <div className="rounded-xl border border-border bg-secondary/20 p-4">
                 <h2 className="font-semibold mb-3">Resumo técnico preliminar</h2>
-            {resumoTecnico ? (
+            {isResumoLoading ? (
+              <div className="rounded-lg border border-dashed border-primary/30 bg-background/60 p-4 text-sm text-muted-foreground">
+                Gerando resumo técnico preliminar... aguarde. Os dados do processo já estão disponíveis para consulta.
+              </div>
+            ) : resumoError ? (
+              <p className="text-sm text-destructive">Não foi possível gerar o resumo técnico preliminar. Tente novamente em instantes.</p>
+            ) : resumoTecnico ? (
               <div className="space-y-5 text-sm">
                 <section>
                   <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">

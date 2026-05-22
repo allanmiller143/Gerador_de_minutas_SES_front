@@ -38,7 +38,12 @@ export interface ResumoTecnico {
 interface SeiDetailResponse {
   sei: Sei;
   jurisprudencias: Jurisprudencia[];
-  resumoTecnico?: ResumoTecnico;
+  minuta: string;
+}
+
+interface SeiResumoTecnicoResponse {
+  sei: Sei;
+  resumoTecnico: ResumoTecnico;
   minuta: string;
 }
 
@@ -81,6 +86,14 @@ export function useSeiDetail(id?: string) {
     queryKey: domainDataQueryKeys.seiDetail(id),
     enabled: !!id,
     queryFn: async () => api<SeiDetailResponse>(`/api/seis/${id}`),
+  });
+}
+
+export function useSeiResumoTecnico(id?: string) {
+  return useQuery({
+    queryKey: [...domainDataQueryKeys.seiDetail(id), "resumo-tecnico"] as const,
+    enabled: !!id,
+    queryFn: async () => api<SeiResumoTecnicoResponse>(`/api/seis/${id}/resumo-tecnico`),
   });
 }
 
