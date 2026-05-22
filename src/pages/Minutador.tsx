@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { useSeiDetail, useSeiResumoTecnico } from "@/services/domainData";
+import { useGenerateResumo, useRestoreResumo, useResumoVersions, useSeiDetail, useSeiResumoTecnico } from "@/services/domainData";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Check, CheckCircle2, Save, Lock, Bot, Scale } from "lucide-react";
+import { ArrowLeft, Check, CheckCircle2, Save, Lock, Bot, Scale, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -20,6 +20,9 @@ const Minutador = () => {
     isLoading: isResumoLoading,
     error: resumoError,
   } = useSeiResumoTecnico(id);
+  const { data: resumoVersions = [] } = useResumoVersions(id);
+  const generateResumo = useGenerateResumo(id);
+  const restoreResumo = useRestoreResumo(id);
   const sei = data?.sei;
   const { user } = useAuth();
   const { getDraft, saveDraft, finalizeDraft } = useDrafts();
@@ -46,6 +49,7 @@ const Minutador = () => {
     [data?.jurisprudencias]
   );
   const resumoTecnico = resumoData?.resumoTecnico;
+  const activeResumoVersion = resumoVersions.find((version) => version.is_active);
   const resumoProcesso = resumoTecnico?.resumo_processo;
   const confronto = resumoTecnico?.confronto_documentacao_suporte;
   const insumoParecer = resumoTecnico?.insumo_parecer;
@@ -81,6 +85,16 @@ const Minutador = () => {
     saveDraft({ seiId: sei.id, minuta, ownerEmail: effectiveOwnerEmail, ownerName: effectiveOwnerName });
     finalizeDraft(sei.id, user.name);
     toast.success("Análise finalizada e marcada como concluída.");
+  };
+
+  const handleGenerateResumo = async () => {
+    await generateResumo.mutateAsync(user?.email ?? user?.name ?? "usuário");
+    toast.success("Nova versão de resumo gerada e ativada.");
+  };
+
+  const handleRestoreResumo = async (resumoId: number) => {
+    await restoreResumo.mutateAsync(resumoId);
+    toast.success("Versão anterior restaurada como resumo ativo.");
   };
 
   return (
@@ -153,7 +167,39 @@ const Minutador = () => {
 
             <TabsContent value="resumo" className="mt-0">
               <div className="rounded-xl border border-border bg-secondary/20 p-4">
-                <h2 className="font-semibold mb-3">Resumo técnico preliminar</h2>
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+                  <div>
+                    <h2 className="font-semibold">Resumo técnico preliminar</h2>
+                    {activeResumoVersion && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Versão ativa #{activeResumoVersion.version}, gerada em {new Date(activeResumoVersion.generated_at).toLocaleString("pt-BR")} por {activeResumoVersion.generated_by}.
+                      </p>
+                    )}
+                  </div>
+                  <Button size="sm" variant="outline" onClick={handleGenerateResumo} disabled={generateResumo.isPending}>
+                    <RotateCcw className="h-4 w-4 mr-2" /> Gerar novamente
+                  </Button>
+                </div>
+                {resumoVersions.length > 0 && (
+                  <div className="mb-4 rounded-lg border border-border bg-background/70 p-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Versões anteriores</div>
+                    <div className="space-y-2">
+                      {resumoVersions.map((version) => (
+                        <div key={version.id} className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                          <span>
+                            Versão #{version.version} · {new Date(version.generated_at).toLocaleString("pt-BR")} · {version.generated_by}
+                            {version.is_active ? " · ativa" : ""}
+                          </span>
+                          {!version.is_active && (
+                            <Button size="sm" variant="ghost" onClick={() => handleRestoreResumo(version.id)} disabled={restoreResumo.isPending}>
+                              Restaurar
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
             {isResumoLoading ? (
               <div className="rounded-lg border border-dashed border-primary/30 bg-background/60 p-4 text-sm text-muted-foreground">
                 Gerando resumo técnico preliminar... aguarde. Os dados do processo já estão disponíveis para consulta.

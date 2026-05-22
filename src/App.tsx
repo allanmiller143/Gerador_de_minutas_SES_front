@@ -14,6 +14,7 @@ import Minutador from "./pages/Minutador.tsx";
 import Jurisprudencias from "./pages/Jurisprudencias.tsx";
 import Relatorios from "./pages/Relatorios.tsx";
 import Configuracoes from "./pages/Configuracoes.tsx";
+import ResumoBatch from "./pages/ResumoBatch.tsx";
 import MinhasAnalises from "./pages/MinhasAnalises.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -37,6 +38,7 @@ const App = () => (
               <Route path="/jurisprudencias" element={<ProtectedRoute><Jurisprudencias /></ProtectedRoute>} />
               <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
               <Route path="/configuracoes" element={<ProtectedRoute roles={["administrador"]}><Configuracoes /></ProtectedRoute>} />
+              <Route path="/resumo-batch" element={<ProtectedRoute roles={["administrador"]}><ResumoBatch /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </DraftsProvider>
