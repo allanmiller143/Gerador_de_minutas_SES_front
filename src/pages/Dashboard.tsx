@@ -2,7 +2,8 @@ import { Link } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MetricCard } from "@/components/shared/MetricCard";
 import { PriorityBadge, StatusBadge, OriginBadge } from "@/components/shared/Badges";
-import { seis, getEffectiveList, computeMetrics } from "@/data/mock";
+import { getEffectiveList, computeMetrics } from "@/data/mock";
+import { useSeis } from "@/services/domainData";
 import { Bot, UserCheck, Send, FileStack, ArrowRight, Eye, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -10,11 +11,20 @@ import { useDrafts } from "@/context/DraftsContext";
 
 const Dashboard = () => {
   const { drafts, priorities } = useDrafts();
+  const { data: seis = [], isLoading, error } = useSeis();
   const effective = getEffectiveList(seis, drafts, priorities);
   const metrics = computeMetrics(effective);
   const preAnalisados = effective.filter((s) => s.status === "Pré-análise");
   const emRevisao = effective.filter((s) => s.status === "Em revisão");
   const revisadosHumanos = effective.filter((s) => s.status === "Concluído").slice(0, 4);
+
+  if (isLoading) {
+    return <AppLayout title="Dashboard" subtitle="Carregando dados do backend..." />;
+  }
+
+  if (error) {
+    return <AppLayout title="Dashboard" subtitle="Não foi possível carregar os dados do backend." />;
+  }
 
   return (
     <AppLayout title="Dashboard" subtitle="Visão geral da análise de processos">

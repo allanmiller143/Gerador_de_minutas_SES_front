@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { seis } from "@/data/mock";
+import { useSeis } from "@/services/domainData";
 import { PriorityBadge, StatusBadge } from "@/components/shared/Badges";
 import { Button } from "@/components/ui/button";
 import { Pencil, Eye, Lock } from "lucide-react";
@@ -10,6 +10,7 @@ import { useDrafts } from "@/context/DraftsContext";
 const MinhasAnalises = () => {
   const { user } = useAuth();
   const { drafts } = useDrafts();
+  const { data: seis = [], isLoading, error } = useSeis();
 
   // "Minhas análises" = SEIs onde o usuário atual é dono do rascunho (em revisão ou concluído)
   const meusIds = Object.values(drafts)
@@ -17,6 +18,14 @@ const MinhasAnalises = () => {
     .map((d) => d.seiId);
 
   const minhas = seis.filter((s) => meusIds.includes(s.id));
+
+  if (isLoading) {
+    return <AppLayout title="Minhas Análises" subtitle="Carregando dados do backend..." />;
+  }
+
+  if (error) {
+    return <AppLayout title="Minhas Análises" subtitle="Não foi possível carregar os dados do backend." />;
+  }
 
   return (
     <AppLayout title="Minhas Análises" subtitle="SEIs que você revisou ou está revisando">

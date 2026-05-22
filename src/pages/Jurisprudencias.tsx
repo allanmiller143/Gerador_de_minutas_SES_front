@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { jurisprudencias } from "@/data/mock";
+import { useJurisprudencias } from "@/services/domainData";
 import { Input } from "@/components/ui/input";
 import { Star, ExternalLink, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -8,13 +8,22 @@ import { cn } from "@/lib/utils";
 const Jurisprudencias = () => {
   const [q, setQ] = useState("");
   const [tribunal, setTribunal] = useState<string>("Todos");
+  const { data: jurisprudencias = [], isLoading, error } = useJurisprudencias();
   const tribunais = ["Todos", ...Array.from(new Set(jurisprudencias.map((j) => j.tribunal)))];
 
   const filtered = useMemo(() => jurisprudencias.filter((j) => {
     const mq = !q || j.tema.toLowerCase().includes(q.toLowerCase()) || j.resumo.toLowerCase().includes(q.toLowerCase()) || j.numero.includes(q);
     const mt = tribunal === "Todos" || j.tribunal === tribunal;
     return mq && mt;
-  }), [q, tribunal]);
+  }), [q, tribunal, jurisprudencias]);
+
+  if (isLoading) {
+    return <AppLayout title="Jurisprudências" subtitle="Carregando dados do backend..." />;
+  }
+
+  if (error) {
+    return <AppLayout title="Jurisprudências" subtitle="Não foi possível carregar os dados do backend." />;
+  }
 
   return (
     <AppLayout title="Jurisprudências" subtitle="Base interna de decisões aplicáveis à Assistência Farmacêutica">
