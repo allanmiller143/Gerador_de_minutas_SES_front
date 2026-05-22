@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { seis, jurisprudencias } from "@/data/mock";
+import { useSeiDetail } from "@/services/domainData";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Check, CheckCircle2, Save, Lock, Bot, Scale } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -13,15 +14,19 @@ const etapas = ["Pré-análise", "Jurisprudências", "Minuta gerada", "Revisão 
 
 const Minutador = () => {
   const { id } = useParams();
-  const sei = seis.find((s) => s.id === id) ?? seis[0];
+  const { data, isLoading, error } = useSeiDetail(id);
+  const sei = data?.sei;
   const { user } = useAuth();
   const { getDraft, saveDraft, finalizeDraft } = useDrafts();
 
-  const existingDraft = getDraft(sei.id);
+  const existingDraft = sei ? getDraft(sei.id) : undefined;
 
-  const [minuta, setMinuta] = useState(
-    existingDraft?.minuta ?? gerarMinuta(sei.numero, sei.assunto)
-  );
+  const [minuta, setMinuta] = useState("");
+
+  useEffect(() => {
+    if (!sei) return;
+    setMinuta(existingDraft?.minuta ?? data?.minuta ?? "");
+  }, [data?.minuta, existingDraft?.minuta, sei]);
 
   const isAdmin = user?.role === "administrador";
   const isLockedByOther = !!existingDraft && !!user && existingDraft.ownerEmail !== user.email && !isAdmin;
@@ -32,9 +37,25 @@ const Minutador = () => {
   const etapaAtual = 3;
 
   const juris = useMemo(
-    () => jurisprudencias.filter((j) => sei.jurisprudenciasSugeridas.includes(j.id)),
-    [sei.id]
+    () => data?.jurisprudencias ?? [],
+    [data?.jurisprudencias]
   );
+  const resumoTecnico = data?.resumoTecnico;
+  const resumoProcesso = resumoTecnico?.resumo_processo;
+  const confronto = resumoTecnico?.confronto_documentacao_suporte;
+  const insumoParecer = resumoTecnico?.insumo_parecer;
+
+  if (isLoading) {
+    return <AppLayout title="Minutador de Resposta" subtitle="Carregando dados do backend..." />;
+  }
+
+  if (error || !sei) {
+    return (
+      <AppLayout title="SEI não encontrado">
+        <Button asChild variant="outline"><Link to="/seis"><ArrowLeft className="h-4 w-4 mr-2" /> Voltar</Link></Button>
+      </AppLayout>
+    );
+  }
 
   // Admin edita em nome do analista original (preserva autoria). Usuário comum salva como dono.
   const effectiveOwnerEmail = isAdmin && existingDraft ? existingDraft.ownerEmail : user?.email ?? "";
@@ -119,6 +140,135 @@ const Minutador = () => {
             </div>
           )}
 
+          <Tabs defaultValue="resumo" className="space-y-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="resumo">Resumo técnico</TabsTrigger>
+              <TabsTrigger value="minuta">Minuta</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="resumo" className="mt-0">
+              <div className="rounded-xl border border-border bg-secondary/20 p-4">
+                <h2 className="font-semibold mb-3">Resumo técnico preliminar</h2>
+            {resumoTecnico ? (
+              <div className="space-y-5 text-sm">
+                <section>
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                    {resumoProcesso?.tipo_demanda
+                      ? resumoProcesso.tipo_demanda.charAt(0).toUpperCase() + resumoProcesso.tipo_demanda.slice(1)
+                      : "Resumo do processo"}
+                  </h3>
+                  <dl className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Número</dt>
+                      <dd className="font-mono">{sei.numero}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Assunto</dt>
+                      <dd>{sei.assunto}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Partes</dt>
+                      <dd>{sei.partes ?? "—"}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Status / prioridade</dt>
+                      <dd>{sei.status} · {sei.prioridade}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Medicamento solicitado</dt>
+                      <dd>{resumoProcesso?.medicamento_solicitado ?? "Não informado"}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">CID informado</dt>
+                      <dd>{resumoProcesso?.cid_informado ?? "Não informado"}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Diagnóstico informado</dt>
+                      <dd>{resumoProcesso?.diagnostico_informado ?? "Não informado"}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Confiança da IA</dt>
+                      <dd>{Math.round(sei.iaConfidence * 100)}%</dd>
+                    </div>
+                    <div className="md:col-span-2">
+                      <dt className="text-xs text-muted-foreground">Objetivo da solicitação</dt>
+                      <dd>{resumoProcesso?.objetivo_da_solicitacao ?? sei.resumo ?? "Não informado"}</dd>
+                    </div>
+                  </dl>
+                </section>
+
+                <section>
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Evidências clínicas do processo</h3>
+                  <ul className="list-disc pl-5 space-y-1">
+                    {(resumoTecnico.evidencias_clinicas_do_processo ?? []).map((item) => <li key={item}>{item}</li>)}
+                    {resumoTecnico.evidencias_clinicas_do_processo?.length === 0 && <li>Nenhuma evidência clínica informada.</li>}
+                  </ul>
+                </section>
+
+                <section>
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Confronto com documentação de suporte</h3>
+                  <div className="space-y-2">
+                    <p>CID validado: {confronto?.cid_validado ? "Sim" : "Não"}</p>
+                    <p>Medicamento contemplado para o CID: {confronto?.medicamento_contemplado_para_o_cid ?? "indeterminado"}</p>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {(confronto?.observacoes ?? []).map((item) => <li key={item}>{item}</li>)}
+                    </ul>
+                  </div>
+                </section>
+
+                <section>
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Insumo para parecer</h3>
+                  <div className="space-y-2">
+                    <p>{insumoParecer?.conclusao_tecnica_sugerida ?? "Conclusão técnica não informada."}</p>
+                    <p>Necessita revisão humana: {insumoParecer?.necessita_revisao_humana ? "Sim" : "Não"}</p>
+                    <p>Nível de confiança: {insumoParecer?.nivel_confianca ?? "não informado"}</p>
+                    {insumoParecer?.fundamentos && insumoParecer.fundamentos.length > 0 && (
+                      <div>
+                        <div className="text-xs text-muted-foreground">Fundamentos</div>
+                        <ul className="list-disc pl-5 space-y-1">{insumoParecer.fundamentos.map((item) => <li key={item}>{item}</li>)}</ul>
+                      </div>
+                    )}
+                    {insumoParecer?.alternativas_orientaveis && insumoParecer.alternativas_orientaveis.length > 0 && (
+                      <div>
+                        <div className="text-xs text-muted-foreground">Alternativas orientáveis</div>
+                        <ul className="list-disc pl-5 space-y-1">{insumoParecer.alternativas_orientaveis.map((item) => <li key={item}>{item}</li>)}</ul>
+                      </div>
+                    )}
+                    {insumoParecer?.pendencias_documentais && insumoParecer.pendencias_documentais.length > 0 && (
+                      <div>
+                        <div className="text-xs text-muted-foreground">Pendências documentais</div>
+                        <ul className="list-disc pl-5 space-y-1">{insumoParecer.pendencias_documentais.map((item) => <li key={item}>{item}</li>)}</ul>
+                      </div>
+                    )}
+                  </div>
+                </section>
+
+                <section>
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Fontes consultadas</h3>
+                  <ul className="list-disc pl-5 space-y-1">
+                    {(resumoTecnico.fontes_consultadas ?? []).map((item) => <li key={item}>{item}</li>)}
+                  </ul>
+                </section>
+
+                <section>
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Documento PDF</h3>
+                  {sei.documentoPdf ? (
+                    <div className="space-y-1 font-mono text-xs break-all">
+                      <div>{sei.documentoPdf.filename}</div>
+                      <div>{sei.documentoPdf.url}</div>
+                    </div>
+                  ) : (
+                    <p>Nenhum documento PDF informado.</p>
+                  )}
+                </section>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Nenhum resumo técnico estruturado retornado pela API.</p>
+            )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="minuta" className="mt-0">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="font-semibold">
@@ -151,6 +301,8 @@ const Minutador = () => {
               readOnly && "bg-secondary/40 cursor-not-allowed"
             )}
           />
+            </TabsContent>
+          </Tabs>
         </section>
 
         <aside className="bg-card border border-border rounded-xl shadow-card p-5 h-fit">
@@ -179,29 +331,5 @@ const Minutador = () => {
     </AppLayout>
   );
 };
-
-function gerarMinuta(numero: string, assunto: string) {
-  return `EXCELENTÍSSIMO(A) SENHOR(A) DOUTOR(A) JUIZ(A) DE DIREITO
-
-Processo SEI: ${numero}
-Assunto: ${assunto}
-
-A SECRETARIA DE ESTADO DA SAÚDE, por meio da Farmácia/Assistência Farmacêutica, vem, respeitosamente, apresentar manifestação nos autos em epígrafe, nos seguintes termos:
-
-1. DO RELATÓRIO
-Trata-se de demanda relativa ao fornecimento de medicamento/insumo, na qual a parte autora pleiteia providências junto ao Poder Público.
-
-2. DA ANÁLISE TÉCNICO-FARMACÊUTICA
-Após análise da documentação médica apresentada, verifica-se a necessidade de avaliação quanto à imprescindibilidade do tratamento, à existência de alternativas terapêuticas no SUS e à observância dos protocolos clínicos vigentes.
-
-3. DO DIREITO
-O entendimento dos tribunais superiores é consolidado no sentido de que o dever do Estado no fornecimento de medicamentos pressupõe a demonstração dos requisitos da imprescindibilidade, inexistência de alternativa fornecida pelo SUS e capacidade financeira, conforme Tema 793/STF e REsp 1.657.156/SP.
-
-4. DA CONCLUSÃO
-Ante o exposto, manifesta-se pela observância dos requisitos legais e jurisprudenciais indicados, submetendo-se a presente minuta à revisão da coordenação.
-
-Atenciosamente,
-Analista – Farmácia da SES.`;
-}
 
 export default Minutador;
