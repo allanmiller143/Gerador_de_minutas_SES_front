@@ -74,7 +74,7 @@ export interface ResumoBatchSchedule {
 
 export interface ResumoBatchLog {
   timestamp: string;
-  level: "info" | "success" | "error" | string;
+  level: "info" | "success" | "error" | "warning" | string;
   message: string;
 }
 
@@ -194,7 +194,7 @@ export function useResumoBatchRuns() {
     queryKey: domainDataQueryKeys.resumoBatchRuns,
     refetchInterval: (query) => {
       const runs = query.state.data as ResumoBatchRun[] | undefined;
-      return runs?.some((run) => run.status === "running") ? 1000 : false;
+      return runs?.some((run) => run.status === "running" || run.status === "cancel_requested") ? 1000 : false;
     },
     queryFn: async () => {
       const data = await api<{ runs: ResumoBatchRun[] }>("/api/resumo-batch/runs");
@@ -221,6 +221,15 @@ export function useRunResumoBatch() {
       queryClient.invalidateQueries({ queryKey: domainDataQueryKeys.resumoBatchRuns });
       queryClient.invalidateQueries({ queryKey: domainDataQueryKeys.seis });
     },
+  });
+}
+
+export function useCancelResumoBatchRun() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ runId, triggered_by }: { runId: number; triggered_by?: string }) =>
+      api<ResumoBatchRun>(`/api/resumo-batch/runs/${runId}/cancel`, { method: "POST", body: { triggered_by } }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: domainDataQueryKeys.resumoBatchRuns }),
   });
 }
 

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import ResumoBatch from "./ResumoBatch";
@@ -50,6 +50,16 @@ describe("ResumoBatch", () => {
           });
         }
 
+        if (url.endsWith("/api/resumo-batch/runs/7/cancel")) {
+          return jsonResponse({
+            id: 7,
+            status: "cancel_requested",
+            logs: [
+              { timestamp: "2026-01-01T03:00:06+00:00", level: "warning", message: "Cancelamento solicitado por analista@ses.test. A execução será suspensa ao concluir o processo atual." },
+            ],
+          });
+        }
+
         if (url.endsWith("/api/resumo-batch/runs")) {
           return jsonResponse({
             runs: [
@@ -68,8 +78,25 @@ describe("ResumoBatch", () => {
                 error_message: null,
                 logs: [
                   { timestamp: "2026-01-01T03:00:01+00:00", level: "info", message: "Execução manual iniciada por admin@ses.test." },
-                  { timestamp: "2026-01-01T03:00:02+00:00", level: "info", message: "Iniciando SEI 1 (1/2)." },
-                  { timestamp: "2026-01-01T03:00:05+00:00", level: "success", message: "SEI 1 concluído com sucesso." },
+                  { timestamp: "2026-01-01T03:00:02+00:00", level: "info", message: "Iniciando processo SEI 1/2: 0001234-56.2024.8.26.0053 — Fornecimento de medicamento oncológico." },
+                  { timestamp: "2026-01-01T03:00:05+00:00", level: "success", message: "Resumo gerado para o processo SEI 0001234-56.2024.8.26.0053." },
+                ],
+              },
+              {
+                id: 6,
+                status: "interrupted",
+                trigger_type: "manual",
+                triggered_by: "sistema",
+                started_at: "2026-01-01T02:00:00+00:00",
+                finished_at: "2026-01-01T02:10:00+00:00",
+                duration_seconds: 600,
+                total_seis: 0,
+                generated_count: 0,
+                failed_count: 0,
+                sei_ids: [],
+                error_message: "Execução interrompida sem registro de conclusão.",
+                logs: [
+                  { timestamp: "2026-01-01T02:10:00+00:00", level: "warning", message: "Execução marcada como interrompida porque estava em andamento, mas não tinha logs de progresso." },
                 ],
               },
             ],
@@ -89,9 +116,30 @@ describe("ResumoBatch", () => {
       expect(screen.getByText("Console da execução em tempo real")).toBeTruthy();
       expect(screen.getAllByText("[info]").length).toBeGreaterThanOrEqual(2);
       expect(screen.getByText("Execução manual iniciada por admin@ses.test.")).toBeTruthy();
-      expect(screen.getByText("Iniciando SEI 1 (1/2).")).toBeTruthy();
+      expect(screen.getByText("Iniciando processo SEI 1/2: 0001234-56.2024.8.26.0053 — Fornecimento de medicamento oncológico.")).toBeTruthy();
       expect(screen.getByText("[success]")).toBeTruthy();
-      expect(screen.getByText("SEI 1 concluído com sucesso.")).toBeTruthy();
+      expect(screen.getByText("Resumo gerado para o processo SEI 0001234-56.2024.8.26.0053.")).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Suspender execução #7" })).toBeTruthy();
+    });
+  });
+
+  it("mostra execução interrompida como histórico e permite solicitar suspensão", async () => {
+    renderResumoBatch();
+
+    await waitFor(() => {
+      expect(screen.getByText("Execução #6 · Interrompida/incompleta")).toBeTruthy();
+      expect(screen.getByText("Histórico do console")).toBeTruthy();
+      expect(screen.getByText("Execução interrompida sem registro de conclusão.")).toBeTruthy();
+      expect(screen.getByText("Execução marcada como interrompida porque estava em andamento, mas não tinha logs de progresso.")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Suspender execução #7" }));
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        "http://127.0.0.1:5000/api/resumo-batch/runs/7/cancel",
+        expect.objectContaining({ method: "POST", body: JSON.stringify({ triggered_by: "analista@ses.test" }) }),
+      );
     });
   });
 });

@@ -6,12 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/context/AuthContext";
 import {
+  useCancelResumoBatchRun,
   useResumoBatchConfig,
   useResumoBatchRuns,
   useRunResumoBatch,
   useUpdateResumoBatchConfig,
 } from "@/services/domainData";
-import { Loader2, Play, Save } from "lucide-react";
+import { Loader2, Play, Save, Square } from "lucide-react";
 import { toast } from "sonner";
 
 const formatDateTime = (value?: string) => (value ? new Date(value).toLocaleString("pt-BR") : "—");
@@ -19,6 +20,7 @@ const formatLogTime = (value?: string) => (value ? new Date(value).toLocaleTimeS
 
 const batchLogLevelClass = (level: string) => {
   if (level === "success") return "text-emerald-400";
+  if (level === "warning") return "text-amber-300";
   if (level === "error") return "text-red-400";
   return "text-sky-300";
 };
@@ -26,8 +28,13 @@ const batchLogLevelClass = (level: string) => {
 const batchStatusLabel = (status: string) => {
   if (status === "success") return "Concluída com sucesso";
   if (status === "running") return "Em execução";
+  if (status === "cancel_requested") return "Suspensão solicitada";
+  if (status === "canceled") return "Suspensa";
+  if (status === "interrupted") return "Interrompida/incompleta";
   return "Falhou";
 };
+
+const isLiveRun = (status: string) => status === "running" || status === "cancel_requested";
 
 export default function ResumoBatch() {
   const { user } = useAuth();
@@ -35,6 +42,7 @@ export default function ResumoBatch() {
   const { data: runs = [], isLoading: loadingRuns } = useResumoBatchRuns();
   const updateConfig = useUpdateResumoBatchConfig();
   const runBatch = useRunResumoBatch();
+  const cancelBatch = useCancelResumoBatchRun();
   const [enabled, setEnabled] = useState(false);
   const [time, setTime] = useState("03:00");
 
@@ -54,6 +62,11 @@ export default function ResumoBatch() {
   const runNow = async () => {
     const result = await runBatch.mutateAsync(actor);
     toast.success(`Execução #${result.id} iniciada em segundo plano. O histórico será atualizado automaticamente.`);
+  };
+
+  const cancelRun = async (runId: number) => {
+    await cancelBatch.mutateAsync({ runId, triggered_by: actor });
+    toast.success(`Suspensão da execução #${runId} solicitada. Ela vai parar ao terminar o processo atual.`);
   };
 
   return (
@@ -112,7 +125,21 @@ export default function ResumoBatch() {
             <article key={run.id} className="p-5 space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="font-medium">Execução #{run.id} · {batchStatusLabel(run.status)}</div>
-                <div className="text-xs text-muted-foreground">{formatDateTime(run.started_at)}</div>
+                <div className="flex items-center gap-2">
+                  {run.status === "running" && (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => cancelRun(run.id)}
+                      disabled={cancelBatch.isPending}
+                      aria-label={`Suspender execução #${run.id}`}
+                    >
+                      {cancelBatch.isPending ? <Loader2 className="h-3 w-3 mr-2 animate-spin" /> : <Square className="h-3 w-3 mr-2" />}
+                      Suspender
+                    </Button>
+                  )}
+                  <div className="text-xs text-muted-foreground">{formatDateTime(run.started_at)}</div>
+                </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
                 <div><span className="text-muted-foreground">Disparo:</span> {run.trigger_type}</div>
@@ -126,8 +153,8 @@ export default function ResumoBatch() {
               {run.error_message && <div className="text-sm text-destructive">{run.error_message}</div>}
               <div className="rounded-lg border border-border bg-slate-950 text-slate-100 overflow-hidden">
                 <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800 text-xs">
-                  <span className="font-medium">Console da execução em tempo real</span>
-                  {run.status === "running" && <span className="text-emerald-300">atualizando automaticamente</span>}
+                  <span className="font-medium">{isLiveRun(run.status) ? "Console da execução em tempo real" : "Histórico do console"}</span>
+                  {isLiveRun(run.status) && <span className="text-emerald-300">atualizando automaticamente</span>}
                 </div>
                 <div className="max-h-72 overflow-y-auto p-3 font-mono text-xs space-y-1">
                   {(run.logs ?? []).length === 0 && <div className="text-slate-400">Aguardando primeiras saídas...</div>}
