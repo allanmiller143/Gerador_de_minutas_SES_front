@@ -167,39 +167,14 @@ const Minutador = () => {
 
             <TabsContent value="resumo" className="mt-0">
               <div className="rounded-xl border border-border bg-secondary/20 p-4">
-                <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-                  <div>
-                    <h2 className="font-semibold">Resumo técnico preliminar</h2>
-                    {activeResumoVersion && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Versão ativa #{activeResumoVersion.version}, gerada em {new Date(activeResumoVersion.generated_at).toLocaleString("pt-BR")} por {activeResumoVersion.generated_by}.
-                      </p>
-                    )}
-                  </div>
-                  <Button size="sm" variant="outline" onClick={handleGenerateResumo} disabled={generateResumo.isPending}>
-                    <RotateCcw className="h-4 w-4 mr-2" /> Gerar novamente
-                  </Button>
+                <div className="mb-3">
+                  <h2 className="font-semibold">Resumo técnico preliminar</h2>
+                  {activeResumoVersion && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Versão ativa #{activeResumoVersion.version}, gerada em {new Date(activeResumoVersion.generated_at).toLocaleString("pt-BR")} por {activeResumoVersion.generated_by}.
+                    </p>
+                  )}
                 </div>
-                {resumoVersions.length > 0 && (
-                  <div className="mb-4 rounded-lg border border-border bg-background/70 p-3">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Versões anteriores</div>
-                    <div className="space-y-2">
-                      {resumoVersions.map((version) => (
-                        <div key={version.id} className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                          <span>
-                            Versão #{version.version} · {new Date(version.generated_at).toLocaleString("pt-BR")} · {version.generated_by}
-                            {version.is_active ? " · ativa" : ""}
-                          </span>
-                          {!version.is_active && (
-                            <Button size="sm" variant="ghost" onClick={() => handleRestoreResumo(version.id)} disabled={restoreResumo.isPending}>
-                              Restaurar
-                            </Button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
             {isResumoLoading ? (
               <div className="rounded-lg border border-dashed border-primary/30 bg-background/60 p-4 text-sm text-muted-foreground">
                 Gerando resumo técnico preliminar... aguarde. Os dados do processo já estão disponíveis para consulta.
@@ -322,6 +297,31 @@ const Minutador = () => {
             ) : (
               <p className="text-sm text-muted-foreground">Nenhum resumo técnico estruturado retornado pela API.</p>
             )}
+                <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-4">
+                  <Button size="sm" variant="outline" onClick={handleGenerateResumo} disabled={generateResumo.isPending}>
+                    <RotateCcw className="h-4 w-4 mr-2" /> Gerar novamente
+                  </Button>
+                </div>
+                {resumoVersions.length > 0 && (
+                  <div className="mt-3 rounded-lg border border-border bg-background/70 p-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Versões anteriores</div>
+                    <div className="space-y-2">
+                      {resumoVersions.map((version) => (
+                        <div key={version.id} className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                          <span>
+                            Versão #{version.version} · {new Date(version.generated_at).toLocaleString("pt-BR")} · {version.generated_by}
+                            {version.is_active ? " · ativa" : ""}
+                          </span>
+                          {!version.is_active && (
+                            <Button size="sm" variant="ghost" onClick={() => handleRestoreResumo(version.id)} disabled={restoreResumo.isPending}>
+                              Restaurar
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </TabsContent>
 

@@ -44,8 +44,30 @@ const detailPayload = {
   minuta: "MINUTA INICIAL DO PROCESSO",
 };
 
+const resumoVersionPayload = {
+  resumos: [
+    {
+      id: 10,
+      sei_id: "1",
+      version: 1,
+      generated_at: "2026-05-22T22:52:36+00:00",
+      generated_by: "sistema",
+      source: "manual",
+      is_active: true,
+      batch_run_id: null,
+      minuta: "MINUTA GERADA COM RESUMO REAL",
+      resumoTecnico: {},
+    },
+  ],
+};
+
 const resumoPayload = {
   sei: detailPayload.sei,
+  id: 10,
+  version: 1,
+  generated_at: "2026-05-22T22:52:36+00:00",
+  generated_by: "sistema",
+  is_active: true,
   minuta: "MINUTA GERADA COM RESUMO REAL",
   resumoTecnico: {
     resumo_processo: {
@@ -117,6 +139,10 @@ describe("Minutador", () => {
           });
         }
 
+        if (url.endsWith("/api/seis/1/resumos")) {
+          return jsonResponse(resumoVersionPayload);
+        }
+
         if (url.endsWith("/api/seis/1")) {
           return jsonResponse(detailPayload);
         }
@@ -177,5 +203,26 @@ describe("Minutador", () => {
       expect(resumoTab.getAttribute("aria-selected")).toBe("false");
       expect(screen.getByDisplayValue("MINUTA GERADA COM RESUMO REAL")).toBeTruthy();
     });
+  });
+
+  it("posiciona gerar novamente e histórico de versões abaixo das informações do resumo", async () => {
+    renderMinutador();
+
+    await act(async () => {
+      resolveResumoRequest?.(jsonResponse(resumoPayload));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Documento PDF")).toBeTruthy();
+      expect(screen.getByRole("button", { name: /Gerar novamente/i })).toBeTruthy();
+      expect(screen.getByText("Versões anteriores")).toBeTruthy();
+    });
+
+    const documentoPdf = screen.getByText("Documento PDF");
+    const gerarNovamente = screen.getByRole("button", { name: /Gerar novamente/i });
+    const versoesAnteriores = screen.getByText("Versões anteriores");
+
+    expect(documentoPdf.compareDocumentPosition(gerarNovamente) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(documentoPdf.compareDocumentPosition(versoesAnteriores) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });
