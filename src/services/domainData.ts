@@ -72,6 +72,12 @@ export interface ResumoBatchSchedule {
   last_run_date?: string | null;
 }
 
+export interface ResumoBatchLog {
+  timestamp: string;
+  level: "info" | "success" | "error" | string;
+  message: string;
+}
+
 export interface ResumoBatchRun {
   id: number;
   status: string;
@@ -85,6 +91,7 @@ export interface ResumoBatchRun {
   failed_count: number;
   sei_ids: string[];
   error_message?: string | null;
+  logs: ResumoBatchLog[];
 }
 
 export interface SeiPdfResponse {
@@ -187,7 +194,7 @@ export function useResumoBatchRuns() {
     queryKey: domainDataQueryKeys.resumoBatchRuns,
     refetchInterval: (query) => {
       const runs = query.state.data as ResumoBatchRun[] | undefined;
-      return runs?.some((run) => run.status === "running") ? 3000 : false;
+      return runs?.some((run) => run.status === "running") ? 1000 : false;
     },
     queryFn: async () => {
       const data = await api<{ runs: ResumoBatchRun[] }>("/api/resumo-batch/runs");

@@ -15,6 +15,13 @@ import { Loader2, Play, Save } from "lucide-react";
 import { toast } from "sonner";
 
 const formatDateTime = (value?: string) => (value ? new Date(value).toLocaleString("pt-BR") : "—");
+const formatLogTime = (value?: string) => (value ? new Date(value).toLocaleTimeString("pt-BR") : "--:--:--");
+
+const batchLogLevelClass = (level: string) => {
+  if (level === "success") return "text-emerald-400";
+  if (level === "error") return "text-red-400";
+  return "text-sky-300";
+};
 
 const batchStatusLabel = (status: string) => {
   if (status === "success") return "Concluída com sucesso";
@@ -117,6 +124,22 @@ export default function ResumoBatch() {
                 <span className="text-muted-foreground">SEIs:</span> {run.sei_ids.length ? run.sei_ids.join(", ") : "nenhum"}
               </div>
               {run.error_message && <div className="text-sm text-destructive">{run.error_message}</div>}
+              <div className="rounded-lg border border-border bg-slate-950 text-slate-100 overflow-hidden">
+                <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800 text-xs">
+                  <span className="font-medium">Console da execução em tempo real</span>
+                  {run.status === "running" && <span className="text-emerald-300">atualizando automaticamente</span>}
+                </div>
+                <div className="max-h-72 overflow-y-auto p-3 font-mono text-xs space-y-1">
+                  {(run.logs ?? []).length === 0 && <div className="text-slate-400">Aguardando primeiras saídas...</div>}
+                  {(run.logs ?? []).map((log, index) => (
+                    <div key={`${log.timestamp}-${index}`} className="flex gap-2 whitespace-pre-wrap break-words">
+                      <span className="text-slate-500 shrink-0">{formatLogTime(log.timestamp)}</span>
+                      <span className={`${batchLogLevelClass(log.level)} shrink-0`}>[{log.level}]</span>
+                      <span>{log.message}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </article>
           ))}
         </div>
