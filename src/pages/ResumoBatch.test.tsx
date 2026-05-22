@@ -108,6 +108,22 @@ describe("ResumoBatch", () => {
     );
   });
 
+  it("habilita salvar agenda somente quando a agenda recorrente é alterada", async () => {
+    renderResumoBatch();
+
+    const saveButton = await screen.findByRole("button", { name: "Salvar agenda" });
+    expect(saveButton).toBeDisabled();
+
+    const scheduleSwitch = screen.getByRole("switch");
+    fireEvent.keyDown(scheduleSwitch, { key: " ", code: "Space" });
+    fireEvent.keyUp(scheduleSwitch, { key: " ", code: "Space" });
+
+    await waitFor(() => {
+      expect(scheduleSwitch).toHaveAttribute("aria-checked", "false");
+      expect(saveButton).not.toBeDisabled();
+    });
+  });
+
   it("mostra as saídas da execução em formato de console no histórico", async () => {
     renderResumoBatch();
 

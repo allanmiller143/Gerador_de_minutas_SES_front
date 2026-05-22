@@ -54,6 +54,7 @@ export default function ResumoBatch() {
   }, [config]);
 
   const actor = user?.email ?? user?.name ?? "usuário";
+  const hasScheduleChanges = !!config && (enabled !== config.enabled || time !== config.time);
 
   const save = async () => {
     await updateConfig.mutateAsync({ enabled, time, updated_by: actor });
@@ -96,7 +97,7 @@ export default function ResumoBatch() {
             <Input id="batch-time" type="time" value={time} onChange={(event) => setTime(event.target.value)} />
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={save} disabled={updateConfig.isPending}>
+            <Button onClick={save} disabled={updateConfig.isPending || !hasScheduleChanges}>
               {updateConfig.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
               Salvar agenda
             </Button>
