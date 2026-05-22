@@ -120,6 +120,8 @@ describe("ResumoBatch", () => {
       expect(screen.getByText("[success]")).toBeTruthy();
       expect(screen.getByText("Resumo gerado para o processo SEI 0001234-56.2024.8.26.0053.")).toBeTruthy();
       expect(screen.getByRole("button", { name: "Suspender execução #7" })).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Iniciar nova execução" })).toBeDisabled();
+      expect(screen.getByText("Já existe uma execução em andamento. Aguarde a conclusão ou suspenda a execução atual antes de iniciar outra."));
     });
   });
 

@@ -45,6 +45,7 @@ export default function ResumoBatch() {
   const cancelBatch = useCancelResumoBatchRun();
   const [enabled, setEnabled] = useState(false);
   const [time, setTime] = useState("03:00");
+  const activeRun = runs.find((run) => isLiveRun(run.status));
 
   useEffect(() => {
     if (!config) return;
@@ -99,12 +100,18 @@ export default function ResumoBatch() {
               {updateConfig.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
               Salvar agenda
             </Button>
-            <Button variant="outline" onClick={runNow} disabled={runBatch.isPending}>
+            <Button variant="outline" onClick={runNow} disabled={runBatch.isPending || Boolean(activeRun)}>
               {runBatch.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Play className="h-4 w-4 mr-2" />}
               Iniciar nova execução
             </Button>
           </div>
         </div>
+
+        {activeRun && (
+          <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+            Já existe uma execução em andamento. Aguarde a conclusão ou suspenda a execução atual antes de iniciar outra.
+          </p>
+        )}
 
         {config && (
           <p className="text-xs text-muted-foreground">
