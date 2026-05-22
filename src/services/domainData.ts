@@ -185,6 +185,10 @@ export function useResumoBatchConfig() {
 export function useResumoBatchRuns() {
   return useQuery({
     queryKey: domainDataQueryKeys.resumoBatchRuns,
+    refetchInterval: (query) => {
+      const runs = query.state.data as ResumoBatchRun[] | undefined;
+      return runs?.some((run) => run.status === "running") ? 3000 : false;
+    },
     queryFn: async () => {
       const data = await api<{ runs: ResumoBatchRun[] }>("/api/resumo-batch/runs");
       return data.runs;

@@ -16,6 +16,12 @@ import { toast } from "sonner";
 
 const formatDateTime = (value?: string) => (value ? new Date(value).toLocaleString("pt-BR") : "—");
 
+const batchStatusLabel = (status: string) => {
+  if (status === "success") return "Concluída com sucesso";
+  if (status === "running") return "Em execução";
+  return "Falhou";
+};
+
 export default function ResumoBatch() {
   const { user } = useAuth();
   const { data: config, isLoading: loadingConfig } = useResumoBatchConfig();
@@ -40,7 +46,7 @@ export default function ResumoBatch() {
 
   const runNow = async () => {
     const result = await runBatch.mutateAsync(actor);
-    toast.success(`Batch concluído: ${result.generated_count} resumo(s) gerado(s).`);
+    toast.success(`Execução #${result.id} iniciada em segundo plano. O histórico será atualizado automaticamente.`);
   };
 
   return (
@@ -98,7 +104,7 @@ export default function ResumoBatch() {
           {runs.map((run) => (
             <article key={run.id} className="p-5 space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="font-medium">Execução #{run.id} · {run.status === "success" ? "Concluída com sucesso" : "Falhou"}</div>
+                <div className="font-medium">Execução #{run.id} · {batchStatusLabel(run.status)}</div>
                 <div className="text-xs text-muted-foreground">{formatDateTime(run.started_at)}</div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
