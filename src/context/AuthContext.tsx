@@ -92,6 +92,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => window.removeEventListener("ses:unauthorized", onUnauth);
   }, []);
 
+
   const login = async (email: string, password: string) => {
     const data = await api<{ access_token: string; refresh_token: string }>(
       "/auth/login",
@@ -104,6 +105,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const me = await fetchMe();
     if (!me) throw new ApiError("Não foi possível carregar perfil do usuário", 500, null);
   };
+
 
   const logout = () => {
     tokenStore.clear();

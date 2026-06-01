@@ -2,20 +2,40 @@ import { Link } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MetricCard } from "@/components/shared/MetricCard";
 import { PriorityBadge, StatusBadge, OriginBadge } from "@/components/shared/Badges";
-import { seis, getEffectiveList, computeMetrics } from "@/data/mock";
 import { Bot, UserCheck, Send, FileStack, ArrowRight, Eye, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { useDrafts } from "@/context/DraftsContext";
+import { useDashboard } from "@/hooks/useDashboard";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Dashboard = () => {
-  const { drafts, priorities } = useDrafts();
-  const effective = getEffectiveList(seis, drafts, priorities);
-  const metrics = computeMetrics(effective);
-  const preAnalisados = effective.filter((s) => s.status === "Pré-análise");
-  const emRevisao = effective.filter((s) => s.status === "Em revisão");
-  const revisadosHumanos = effective.filter((s) => s.status === "Concluído").slice(0, 4);
+  // 1. Consome os dados, métricas e o estado de carregamento do nosso novo Hook
+  const { data, metrics, isLoading } = useDashboard();
 
+  // 2. Enquanto os dados estiverem sendo "buscados" (simulando a API), mostra uma tela de carregamento
+  if (isLoading || !metrics) {
+    return (
+      <AppLayout title="Dashboard" subtitle="Carregando dados do sistema...">
+        <div className="space-y-6 p-4">
+          <Skeleton className="h-32 w-full rounded-xl" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Skeleton className="h-24 rounded-xl" />
+            <Skeleton className="h-24 rounded-xl" />
+            <Skeleton className="h-24 rounded-xl" />
+            <Skeleton className="h-24 rounded-xl" />
+          </div>
+          <Skeleton className="h-64 w-full rounded-xl" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  // 3. Separa as listas utilizando o 'data' que veio do hook (que já possui as regras de negócio)
+  const preAnalisados = data.filter((s) => s.status === "Pré-análise");
+  const emRevisao = data.filter((s) => s.status === "Em revisão");
+  const revisadosHumanos = data.filter((s) => s.status === "Concluído").slice(0, 4);
+
+  // 4. Renderiza a interface visual idêntica à que o Lovable gerou
   return (
     <AppLayout title="Dashboard" subtitle="Visão geral da análise de processos">
       {/* Explicação do fluxo */}
