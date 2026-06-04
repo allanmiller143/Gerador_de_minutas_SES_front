@@ -1,36 +1,52 @@
-//Gerencia as regras de negócio e estados do Dashboard.
-
 import { useState, useEffect } from "react";
-import { useDrafts } from "../context/DraftsContext"; //Edições temporárias salvas no navegador.
-import { fetchProcessos, fetchMetrics } from "../lib/api"; //Funções de busca de dados.
-import { ProcessoSEI, DashboardMetrics } from "../types/sei"; //Interfaces de tipagem oficiais.
-import { getEffectiveList } from "../data/mock"; //Função que mescla os dados reais com as edições locais.
+import { useDrafts } from "../context/DraftsContext";
+import { fetchProcessos, fetchMetrics } from "../lib/api";
+import { ProcessoSEI, DashboardMetrics } from "../types/sei";
+import { getEffectiveList } from "../data/mock";
 
 export const useDashboard = () => {
-  //Pega os rascunhos e prioridades alterados localmente pelo usuário.
   const { drafts, priorities } = useDrafts();
   
-  //Armazena os processos, as métricas do painel e o status de carregamento.
   const [data, setData] = useState<ProcessoSEI[]>([]);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  //Executa a busca de dados sempre que houver mudanças nos rascunhos ou prioridades.
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
       try {
-        //Busca a lista bruta de processos.
+        //Busca a lista original vinda da API
         const processosAPI = await fetchProcessos();
         
-        //Aplica os rascunhos locais por cima da lista que veio do servidor.
+        //Aplica os rascunhos locais por cima da lista
         const effective = getEffectiveList(processosAPI, drafts, priorities);
         
-        //Calcula as métricas com base nessa lista atualizada.
-        const metricasCalculadas = await fetchMetrics(effective);
+        //Injeta o indicador laranja se baseando na flag do rascunho.
+        const effectiveComIndicador = effective.map(proc => {
+          //Busca o draft original do processo para poder comparar a prioridade.
+          const original = processosAPI.find(p => p.id === proc.id);
+          const prioridadeOriginal = original ? original.prioridade : proc.prioridade;
+
+          const rascunhoLocal = drafts ? drafts[proc.id] : undefined;
+          const prioridadeLocal = priorities ? priorities[proc.id] : undefined;
+
+          //Verifica se o rascunho existe e que o texto foi alterado.
+          const temRascunhoDiferente = rascunhoLocal !== undefined && 
+                                       rascunhoLocal.foiAlterado === true;
+
+          //Verifica a prioridade.
+          const temPrioridadeDiferente = prioridadeLocal !== undefined && 
+                                         prioridadeLocal.priority !== prioridadeOriginal;
+
+          return {
+            ...proc,
+            isEditadoLocalmente: Boolean(temRascunhoDiferente || temPrioridadeDiferente)
+          };
+        });
+
+        const metricasCalculadas = await fetchMetrics(effectiveComIndicador);
         
-        //Guarda os resultados nos estados do React.
-        setData(effective);
+        setData(effectiveComIndicador);
         setMetrics(metricasCalculadas);
       } catch (error) {
         console.error("Erro ao carregar dados do dashboard", error);
@@ -39,10 +55,8 @@ export const useDashboard = () => {
       }
     };
 
-    //Dispara a função de carregamento.
     loadData();
   }, [drafts, priorities]);
 
-  //Entrega os dados e o estado de loading para o Dashboard.tsx.
   return { data, metrics, isLoading };
 };

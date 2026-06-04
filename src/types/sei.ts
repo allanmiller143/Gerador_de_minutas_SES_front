@@ -18,6 +18,7 @@ export interface ProcessoSEI {
   dataPreAnalise: string;               //Data que foi pré-analisado pela IA
   iaSugestao: string;                   //O texto sugerida pela IA
   jurisprudenciasSugeridas: any[];      //Lista de jurisprudências 
+  isEditadoLocalmente?: boolean;        //Indica se foi editado.
 }
 
 //Contadores numéricos das caixas de métricas do Dashboard

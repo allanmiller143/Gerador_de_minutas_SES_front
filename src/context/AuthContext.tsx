@@ -105,7 +105,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const me = await fetchMe();
     if (!me) throw new ApiError("Não foi possível carregar perfil do usuário", 500, null);
   };
-
+  
 
   const logout = () => {
     tokenStore.clear();

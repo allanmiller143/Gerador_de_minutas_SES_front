@@ -9,10 +9,8 @@ import { useDashboard } from "@/hooks/useDashboard";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const Dashboard = () => {
-  // 1. Consome os dados, métricas e o estado de carregamento do nosso novo Hook
   const { data, metrics, isLoading } = useDashboard();
 
-  // 2. Enquanto os dados estiverem sendo "buscados" (simulando a API), mostra uma tela de carregamento
   if (isLoading || !metrics) {
     return (
       <AppLayout title="Dashboard" subtitle="Carregando dados do sistema...">
@@ -30,15 +28,13 @@ const Dashboard = () => {
     );
   }
 
-  // 3. Separa as listas utilizando o 'data' que veio do hook (que já possui as regras de negócio)
   const preAnalisados = data.filter((s) => s.status === "Pré-análise");
   const emRevisao = data.filter((s) => s.status === "Em revisão");
   const revisadosHumanos = data.filter((s) => s.status === "Concluído").slice(0, 4);
 
-  // 4. Renderiza a interface visual idêntica à que o Lovable gerou
+
   return (
     <AppLayout title="Dashboard" subtitle="Visão geral da análise de processos">
-      {/* Explicação do fluxo */}
       <div className="mb-6 rounded-xl border border-border bg-gradient-to-r from-accent/60 to-card p-4 flex items-start gap-3">
         <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
           <Sparkles className="h-4 w-4 text-primary" />
@@ -135,7 +131,17 @@ const Dashboard = () => {
               <tbody>
                 {emRevisao.map((s) => (
                   <tr key={s.id} className="border-t border-border hover:bg-secondary/40">
-                    <td className="px-5 py-3 font-mono text-xs">{s.numero}</td>
+                    <td className="px-5 py-3 font-mono text-xs">
+                      <div className="flex items-center gap-2">
+                        {s.numero}
+                        {s.isEditadoLocalmente && (
+                          <span 
+                            className="h-2 w-2 rounded-full bg-orange-500" 
+                            title="Texto da IA foi alterado"
+                          />
+                        )}
+                      </div>
+                    </td>
                     <td className="px-5 py-3">{s.assunto}</td>
                     <td className="px-5 py-3">{s.analista ?? "—"}</td>
                     <td className="px-5 py-3"><PriorityBadge value={s.prioridade} /></td>
