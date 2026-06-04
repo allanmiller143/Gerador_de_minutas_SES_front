@@ -40,10 +40,27 @@ const Minutador = () => {
   const effectiveOwnerEmail = isAdmin && existingDraft ? existingDraft.ownerEmail : user?.email ?? "";
   const effectiveOwnerName = isAdmin && existingDraft ? existingDraft.ownerName : user?.name ?? "";
 
+  // Remove quebras de linha do Windows (\r) e espaços inúteis nas pontas
+  const normalizar = (txt: string) => (txt || "").replace(/\r/g, "").trim();
+
   const handleSaveDraft = () => {
     if (!user) return;
     if (isLockedByOther) { toast.error("Esta análise pertence a outro usuário."); return; }
-    saveDraft({ seiId: sei.id, minuta, ownerEmail: effectiveOwnerEmail, ownerName: effectiveOwnerName });
+
+    //Define qual é o texto original da IA para este processo.
+    const textoOriginal = gerarMinuta(sei.numero, sei.assunto); //Quando tiver uma API real alterar para: const textoOriginal = sei.iaSugestao;
+
+    //Compara se o texto atual na tela (sendo editado) é diferente do original.
+    const mudouOTexto = normalizar(minuta) !== normalizar(textoOriginal);
+
+    saveDraft({ 
+      seiId: sei.id, 
+      minuta, 
+      ownerEmail: effectiveOwnerEmail, 
+      ownerName: effectiveOwnerName,
+      foiAlterado: mudouOTexto 
+    });
+
     toast.success(isAdmin && existingDraft && existingDraft.ownerEmail !== user.email
       ? `Rascunho salvo (edição administrativa em nome de ${existingDraft.ownerName}).`
       : "Rascunho salvo com sucesso.");
@@ -52,7 +69,18 @@ const Minutador = () => {
   const handleFinalize = () => {
     if (!user) return;
     if (isLockedByOther) { toast.error("Esta análise pertence a outro usuário."); return; }
-    saveDraft({ seiId: sei.id, minuta, ownerEmail: effectiveOwnerEmail, ownerName: effectiveOwnerName });
+
+    const textoOriginal = gerarMinuta(sei.numero, sei.assunto);
+    const mudouOTexto = normalizar(minuta) !== normalizar(textoOriginal);
+
+    saveDraft({ 
+      seiId: sei.id, 
+      minuta, 
+      ownerEmail: effectiveOwnerEmail, 
+      ownerName: effectiveOwnerName,
+      foiAlterado: mudouOTexto 
+    });
+
     finalizeDraft(sei.id, user.name);
     toast.success("Análise finalizada e marcada como concluída.");
   };
@@ -198,7 +226,7 @@ Após análise da documentação médica apresentada, verifica-se a necessidade 
 O entendimento dos tribunais superiores é consolidado no sentido de que o dever do Estado no fornecimento de medicamentos pressupõe a demonstração dos requisitos da imprescindibilidade, inexistência de alternativa fornecida pelo SUS e capacidade financeira, conforme Tema 793/STF e REsp 1.657.156/SP.
 
 4. DA CONCLUSÃO
-Ante o exposto, manifesta-se pela observância dos requisitos legais e jurisprudenciais indicados, submetendo-se a presente minuta à revisão da coordenação.
+Ante o exposto, manifesta-se pela observância dos requisitos legais and jurisprudenciais indicados, submetendo-se a presente minuta à revisão da coordenação.
 
 Atenciosamente,
 Analista – Farmácia da SES.`;

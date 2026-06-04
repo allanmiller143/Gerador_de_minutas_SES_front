@@ -8,6 +8,7 @@ export interface Draft {
   ownerName: string;
   status: "Em revisão" | "Concluído";
   updatedAt: string;
+  foiAlterado?: boolean; //Verifica se o draft criado pela IA foi alterado ou não.
 }
 
 export interface PriorityOverride {
@@ -78,7 +79,7 @@ export const DraftsProvider = ({ children }: { children: ReactNode }) => {
     return next;
   };
 
-  const saveDraft: DraftsContextValue["saveDraft"] = (d) => {
+const saveDraft: DraftsContextValue["saveDraft"] = (d) => {
     const now = new Date().toISOString();
     let hadExisting = false;
     setDrafts((prev) => {
@@ -92,6 +93,7 @@ export const DraftsProvider = ({ children }: { children: ReactNode }) => {
           ownerName: d.ownerName,
           status: d.status ?? ("Em revisão" as const),
           updatedAt: now,
+          foiAlterado: d.foiAlterado,
         },
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
