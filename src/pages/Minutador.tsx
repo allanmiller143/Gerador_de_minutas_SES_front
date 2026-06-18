@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useGenerateResumo, useRestoreResumo, useResumoVersions, useSeiDetail, useSeiResumoTecnico } from "@/services/domainData";
+import { RichTextEditor } from "@/components/RichTextEditor";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Check, CheckCircle2, Save, Lock, Bot, Scale, RotateCcw } from "lucide-react";
@@ -55,7 +56,7 @@ const Minutador = () => {
   const insumoParecer = resumoTecnico?.insumo_parecer;
 
   if (isLoading) {
-    return <AppLayout title="Minutador de Resposta" subtitle="Carregando dados do backend..." />;
+    return <AppLayout title="Minutador de Resposta" subtitle="Carregando dados do backend..."><div /></AppLayout>;
   }
 
   if (error || !sei) {
@@ -349,14 +350,12 @@ const Minutador = () => {
             )}
           </div>
 
-          <textarea
+          <RichTextEditor
             value={minuta}
-            onChange={(e) => setMinuta(e.target.value)}
+            onChange={setMinuta}
             readOnly={readOnly}
-            className={cn(
-              "w-full min-h-[420px] border border-border rounded-lg p-4 text-sm font-mono leading-relaxed bg-background focus:outline-none focus:ring-2 focus:ring-ring resize-y",
-              readOnly && "bg-secondary/40 cursor-not-allowed"
-            )}
+            minHeight="420px"
+            placeholder="Digite ou edite a minuta aqui..."
           />
             </TabsContent>
           </Tabs>
