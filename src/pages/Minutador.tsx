@@ -5,7 +5,7 @@ import { useGenerateResumo, useRestoreResumo, useResumoVersions, useSeiDetail, u
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Check, CheckCircle2, Save, Lock, Bot, Scale, RotateCcw } from "lucide-react";
+import { ArrowLeft, Check, CheckCircle2, Save, Lock, Bot, FileText, RotateCcw, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -161,9 +161,10 @@ const Minutador = () => {
           )}
 
           <Tabs defaultValue="resumo" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="resumo">Resumo técnico</TabsTrigger>
               <TabsTrigger value="minuta">Minuta</TabsTrigger>
+              <TabsTrigger value="juris">Jurisprudências</TabsTrigger>
             </TabsList>
 
             <TabsContent value="resumo" className="mt-0">
@@ -231,14 +232,6 @@ const Minutador = () => {
                 </section>
 
                 <section>
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Evidências clínicas do processo</h3>
-                  <ul className="list-disc pl-5 space-y-1">
-                    {(resumoTecnico.evidencias_clinicas_do_processo ?? []).map((item) => <li key={item}>{item}</li>)}
-                    {resumoTecnico.evidencias_clinicas_do_processo?.length === 0 && <li>Nenhuma evidência clínica informada.</li>}
-                  </ul>
-                </section>
-
-                <section>
                   <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Confronto com documentação de suporte</h3>
                   <div className="space-y-2">
                     <p>CID validado: {confronto?.cid_validado ? "Sim" : "Não"}</p>
@@ -299,8 +292,13 @@ const Minutador = () => {
               <p className="text-sm text-muted-foreground">Nenhum resumo técnico estruturado retornado pela API.</p>
             )}
                 <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-4">
-                  <Button size="sm" variant="outline" onClick={handleGenerateResumo} disabled={generateResumo.isPending}>
-                    <RotateCcw className="h-4 w-4 mr-2" /> Gerar novamente
+                  <Button size="sm" variant="outline" onClick={handleGenerateResumo} disabled={generateResumo.isPending || isResumoLoading}>
+                    {generateResumo.isPending || isResumoLoading ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <RotateCcw className="h-4 w-4 mr-2" />
+                    )}
+                    {generateResumo.isPending || isResumoLoading ? "Gerando..." : "Gerar novamente"}
                   </Button>
                 </div>
                 {resumoVersions.length > 0 && (
@@ -323,6 +321,29 @@ const Minutador = () => {
                     </div>
                   </div>
                 )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="juris" className="mt-0">
+              <div className="rounded-xl border border-border bg-secondary/20 p-4 space-y-4">
+                <div className="mb-3">
+                  <h2 className="font-semibold">Jurisprudências sugeridas</h2>
+                  <p className="text-xs text-muted-foreground mt-1">Referências de jurisprudência associadas ao processo.</p>
+                </div>
+
+                <div className="space-y-3">
+                  {juris.map((j) => (
+                    <article key={j.id} className="border border-border rounded-lg p-4 hover:bg-secondary/40 transition-colors">
+                      <div className="text-xs font-semibold text-primary">{j.tribunal}</div>
+                      <div className="font-mono text-[11px] text-muted-foreground mb-1">{j.numero}</div>
+                      <div className="text-sm font-medium mb-1">{j.tema}</div>
+                      <p className="text-xs text-muted-foreground">{j.resumo}</p>
+                    </article>
+                  ))}
+                  {juris.length === 0 && (
+                    <p className="text-sm text-muted-foreground">Nenhuma jurisprudência associada a este processo.</p>
+                  )}
+                </div>
               </div>
             </TabsContent>
 
@@ -363,25 +384,97 @@ const Minutador = () => {
 
         <aside className="bg-card border border-border rounded-xl shadow-card p-5 h-fit">
           <div className="flex items-center gap-2 mb-3">
-            <Scale className="h-4 w-4 text-primary" />
-            <h3 className="font-semibold text-sm">Jurisprudências encontradas</h3>
+            <FileText className="h-4 w-4 text-primary" />
+            <h3 className="font-semibold text-sm">Evidências encontradas</h3>
           </div>
           <p className="text-xs text-muted-foreground mb-4">
-            Selecionadas pela IA com base no tema do processo.
+            Informações-chave para gerar a minuta.
           </p>
-          <ul className="space-y-3">
-            {juris.map((j) => (
-              <li key={j.id} className="border border-border rounded-lg p-3 hover:bg-secondary/40 transition-colors">
-                <div className="text-xs font-semibold text-primary">{j.tribunal}</div>
-                <div className="font-mono text-[11px] text-muted-foreground mb-1">{j.numero}</div>
-                <div className="text-sm font-medium mb-1">{j.tema}</div>
-                <p className="text-xs text-muted-foreground line-clamp-3">{j.resumo}</p>
-              </li>
-            ))}
-            {juris.length === 0 && (
-              <li className="text-xs text-muted-foreground">Nenhuma jurisprudência associada.</li>
+          
+          {isResumoLoading ? (
+            <div className="rounded-lg border border-dashed border-primary/30 bg-background/60 p-4 text-sm text-muted-foreground flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Carregando evidências...
+            </div>
+          ) : !resumoTecnico ? (
+            <p className="text-xs text-muted-foreground">Nenhuma evidência disponível no momento.</p>
+          ) : (
+          <div className="space-y-4">
+            {/* Evidências clínicas */}
+            {resumoTecnico?.evidencias_clinicas_do_processo && resumoTecnico.evidencias_clinicas_do_processo.length > 0 && (
+              <div>
+                <div className="text-xs font-semibold mb-2 text-primary">Evidências Clínicas</div>
+                <ul className="space-y-2">
+                  {resumoTecnico.evidencias_clinicas_do_processo.map((item, idx) => (
+                    <li key={idx} className="border border-border/50 rounded-lg p-2 bg-secondary/10 text-xs hover:bg-secondary/20 transition-colors">
+                      <p className="line-clamp-3">{item}</p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
-          </ul>
+
+            {/* Observações do confronto */}
+            {confronto?.observacoes && confronto.observacoes.length > 0 && (
+              <div>
+                <div className="text-xs font-semibold mb-2 text-primary">Observações</div>
+                <ul className="space-y-2">
+                  {confronto.observacoes.map((item, idx) => (
+                    <li key={idx} className="border border-border/50 rounded-lg p-2 bg-secondary/10 text-xs hover:bg-secondary/20 transition-colors">
+                      <p className="line-clamp-3">{item}</p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Fundamentos */}
+            {insumoParecer?.fundamentos && insumoParecer.fundamentos.length > 0 && (
+              <div>
+                <div className="text-xs font-semibold mb-2 text-primary">Fundamentos</div>
+                <ul className="space-y-2">
+                  {insumoParecer.fundamentos.map((item, idx) => (
+                    <li key={idx} className="border border-border/50 rounded-lg p-2 bg-secondary/10 text-xs hover:bg-secondary/20 transition-colors">
+                      <p className="line-clamp-3">{item}</p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Alternativas orientáveis */}
+            {insumoParecer?.alternativas_orientaveis && insumoParecer.alternativas_orientaveis.length > 0 && (
+              <div>
+                <div className="text-xs font-semibold mb-2 text-primary">Alternativas</div>
+                <ul className="space-y-2">
+                  {insumoParecer.alternativas_orientaveis.map((item, idx) => (
+                    <li key={idx} className="border border-border/50 rounded-lg p-2 bg-secondary/10 text-xs hover:bg-secondary/20 transition-colors">
+                      <p className="line-clamp-3">{item}</p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Pendências documentais */}
+            {insumoParecer?.pendencias_documentais && insumoParecer.pendencias_documentais.length > 0 && (
+              <div>
+                <div className="text-xs font-semibold mb-2 text-destructive">Pendências</div>
+                <ul className="space-y-2">
+                  {insumoParecer.pendencias_documentais.map((item, idx) => (
+                    <li key={idx} className="border border-destructive/30 rounded-lg p-2 bg-destructive/10 text-xs hover:bg-destructive/20 transition-colors">
+                      <p className="line-clamp-3">{item}</p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {!resumoTecnico && (
+              <p className="text-xs text-muted-foreground">Nenhuma evidência disponível no momento.</p>
+            )}
+          </div>
+          )}
         </aside>
       </div>
     </AppLayout>
