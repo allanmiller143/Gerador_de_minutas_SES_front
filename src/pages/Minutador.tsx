@@ -43,7 +43,8 @@ const Minutador = () => {
   const readOnly = isLockedByOther || isFinalized;
 
   // A IA já terminou tudo off-line. Ao abrir o editor, estamos sempre na etapa de revisão humana.
-  const etapaAtual = 3;
+  // Mas se o resumo técnico ainda está carregando, fica na etapa de jurisprudências
+  const etapaAtual = isResumoLoading ? 1 : isFinalized ? 3 : 2;
 
   const juris = useMemo(
     () => data?.jurisprudencias ?? [],
@@ -163,8 +164,12 @@ const Minutador = () => {
           <Tabs defaultValue="resumo" className="space-y-4">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="resumo">Resumo técnico</TabsTrigger>
-              <TabsTrigger value="minuta">Minuta</TabsTrigger>
-              <TabsTrigger value="juris">Jurisprudências</TabsTrigger>
+              <TabsTrigger value="juris" disabled={isResumoLoading} className={isResumoLoading ? "opacity-50 cursor-not-allowed" : ""}>
+                {isResumoLoading ? "Jurisprudências (carregando...)" : "Jurisprudências"}
+              </TabsTrigger>
+              <TabsTrigger value="minuta" disabled={isResumoLoading} className={isResumoLoading ? "opacity-50 cursor-not-allowed" : ""}>
+                {isResumoLoading ? "Minuta (carregando...)" : "Minuta"}
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="resumo" className="mt-0">
@@ -325,6 +330,15 @@ const Minutador = () => {
             </TabsContent>
 
             <TabsContent value="juris" className="mt-0">
+              {isResumoLoading ? (
+                <div className="rounded-lg border border-primary/30 bg-primary/5 p-6 text-center space-y-3">
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    <p className="font-semibold text-primary">Carregando jurisprudências...</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Aguarde o carregamento completo das jurisprudências e evidências.</p>
+                </div>
+              ) : (
               <div className="rounded-xl border border-border bg-secondary/20 p-4 space-y-4">
                 <div className="mb-3">
                   <h2 className="font-semibold">Jurisprudências sugeridas</h2>
@@ -345,10 +359,21 @@ const Minutador = () => {
                   )}
                 </div>
               </div>
+              )}
             </TabsContent>
 
             <TabsContent value="minuta" className="mt-0">
-          <div className="flex items-center justify-between mb-4">
+          {isResumoLoading ? (
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-6 text-center space-y-3">
+              <div className="flex items-center justify-center gap-2">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <p className="font-semibold text-primary">Carregando evidências...</p>
+              </div>
+              <p className="text-xs text-muted-foreground">Aguarde o carregamento completo das evidências e jurisprudências para começar a editar a minuta.</p>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="font-semibold">
                 {isFinalized ? "Minuta finalizada" : readOnly ? "Minuta (somente leitura)" : "Minuta – pronta para edição"}
@@ -378,6 +403,8 @@ const Minutador = () => {
             minHeight="420px"
             placeholder="Digite ou edite a minuta aqui..."
           />
+            </>
+          )}
             </TabsContent>
           </Tabs>
         </section>
