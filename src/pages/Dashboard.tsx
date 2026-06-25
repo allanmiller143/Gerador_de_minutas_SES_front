@@ -2,33 +2,38 @@ import { Link } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MetricCard } from "@/components/shared/MetricCard";
 import { PriorityBadge, StatusBadge, OriginBadge } from "@/components/shared/Badges";
-import { getEffectiveList, computeMetrics } from "@/data/mock";
-import { useSeis } from "@/services/domainData";
 import { Bot, UserCheck, Send, FileStack, ArrowRight, Eye, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { useDrafts } from "@/context/DraftsContext";
+import { useDashboard } from "@/hooks/useDashboard";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Dashboard = () => {
-  const { drafts, priorities } = useDrafts();
-  const { data: seis = [], isLoading, error } = useSeis();
-  const effective = getEffectiveList(seis, drafts, priorities);
-  const metrics = computeMetrics(effective);
-  const preAnalisados = effective.filter((s) => s.status === "Pré-análise");
-  const emRevisao = effective.filter((s) => s.status === "Em revisão");
-  const revisadosHumanos = effective.filter((s) => s.status === "Concluído").slice(0, 4);
+  const { data, metrics, isLoading } = useDashboard();
 
-  if (isLoading) {
-    return <AppLayout title="Dashboard" subtitle="Carregando dados do backend..." />;
+  if (isLoading || !metrics) {
+    return (
+      <AppLayout title="Dashboard" subtitle="Carregando dados do sistema...">
+        <div className="space-y-6 p-4">
+          <Skeleton className="h-32 w-full rounded-xl" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Skeleton className="h-24 rounded-xl" />
+            <Skeleton className="h-24 rounded-xl" />
+            <Skeleton className="h-24 rounded-xl" />
+            <Skeleton className="h-24 rounded-xl" />
+          </div>
+          <Skeleton className="h-64 w-full rounded-xl" />
+        </div>
+      </AppLayout>
+    );
   }
 
-  if (error) {
-    return <AppLayout title="Dashboard" subtitle="Não foi possível carregar os dados do backend." />;
-  }
+  const preAnalisados = data.filter((s) => s.status === "Pré-análise");
+  const emRevisao = data.filter((s) => s.status === "Em revisão");
+  const revisadosHumanos = data.filter((s) => s.status === "Concluído").slice(0, 4);
 
   return (
     <AppLayout title="Dashboard" subtitle="Visão geral da análise de processos">
-      {/* Explicação do fluxo */}
       <div className="mb-6 rounded-xl border border-border bg-gradient-to-r from-accent/60 to-card p-4 flex items-start gap-3">
         <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
           <Sparkles className="h-4 w-4 text-primary" />
@@ -125,7 +130,17 @@ const Dashboard = () => {
               <tbody>
                 {emRevisao.map((s) => (
                   <tr key={s.id} className="border-t border-border hover:bg-secondary/40">
-                    <td className="px-5 py-3 font-mono text-xs">{s.numero}</td>
+                    <td className="px-5 py-3 font-mono text-xs">
+                      <div className="flex items-center gap-2">
+                        {s.numero}
+                        {s.isEditadoLocalmente && (
+                          <span 
+                            className="h-2 w-2 rounded-full bg-orange-500" 
+                            title="Texto da IA foi alterado"
+                          />
+                        )}
+                      </div>
+                    </td>
                     <td className="px-5 py-3">{s.assunto}</td>
                     <td className="px-5 py-3">{s.analista ?? "—"}</td>
                     <td className="px-5 py-3"><PriorityBadge value={s.prioridade} /></td>

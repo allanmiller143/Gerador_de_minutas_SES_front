@@ -55,6 +55,7 @@ const Minutador = () => {
   const resumoProcesso = resumoTecnico?.resumo_processo;
   const confronto = resumoTecnico?.confronto_documentacao_suporte;
   const insumoParecer = resumoTecnico?.insumo_parecer;
+  const minutaOriginal = resumoData?.minuta ?? data?.minuta ?? sei?.iaSugestao ?? "";
 
   if (isLoading) {
     return <AppLayout title="Minutador de Resposta" subtitle="Carregando dados do backend..."><div /></AppLayout>;
@@ -72,10 +73,23 @@ const Minutador = () => {
   const effectiveOwnerEmail = isAdmin && existingDraft ? existingDraft.ownerEmail : user?.email ?? "";
   const effectiveOwnerName = isAdmin && existingDraft ? existingDraft.ownerName : user?.name ?? "";
 
+  // Remove quebras de linha do Windows (\r) e espaços inúteis nas pontas
+  const normalizar = (txt: string) => (txt || "").replace(/\r/g, "").trim();
+
   const handleSaveDraft = () => {
     if (!user) return;
     if (isLockedByOther) { toast.error("Esta análise pertence a outro usuário."); return; }
-    saveDraft({ seiId: sei.id, minuta, ownerEmail: effectiveOwnerEmail, ownerName: effectiveOwnerName });
+
+    const mudouOTexto = normalizar(minuta) !== normalizar(minutaOriginal);
+
+    saveDraft({ 
+      seiId: sei.id, 
+      minuta, 
+      ownerEmail: effectiveOwnerEmail, 
+      ownerName: effectiveOwnerName,
+      foiAlterado: mudouOTexto 
+    });
+
     toast.success(isAdmin && existingDraft && existingDraft.ownerEmail !== user.email
       ? `Rascunho salvo (edição administrativa em nome de ${existingDraft.ownerName}).`
       : "Rascunho salvo com sucesso.");
@@ -84,7 +98,17 @@ const Minutador = () => {
   const handleFinalize = () => {
     if (!user) return;
     if (isLockedByOther) { toast.error("Esta análise pertence a outro usuário."); return; }
-    saveDraft({ seiId: sei.id, minuta, ownerEmail: effectiveOwnerEmail, ownerName: effectiveOwnerName });
+
+    const mudouOTexto = normalizar(minuta) !== normalizar(minutaOriginal);
+
+    saveDraft({ 
+      seiId: sei.id, 
+      minuta, 
+      ownerEmail: effectiveOwnerEmail, 
+      ownerName: effectiveOwnerName,
+      foiAlterado: mudouOTexto 
+    });
+
     finalizeDraft(sei.id, user.name);
     toast.success("Análise finalizada e marcada como concluída.");
   };

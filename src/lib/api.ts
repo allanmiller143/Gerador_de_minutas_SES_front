@@ -1,5 +1,8 @@
 // Cliente HTTP com JWT (access + refresh) e refresh automático em 401.
 
+import { ProcessoSEI, DashboardMetrics } from "../types/sei";
+import { computeMetrics } from "../data/mock";
+
 export const API_BASE_URL =
   (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, "") ||
   "http://127.0.0.1:5000";
@@ -119,3 +122,12 @@ export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Pro
 
   return data as T;
 }
+
+export const fetchProcessos = async (): Promise<ProcessoSEI[]> => {
+  const data = await api<{ seis: ProcessoSEI[] }>("/api/seis");
+  return data.seis;
+};
+
+export const fetchMetrics = async (processos: ProcessoSEI[]): Promise<DashboardMetrics> => {
+  return computeMetrics(processos as any);
+};

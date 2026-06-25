@@ -157,9 +157,10 @@ describe("Minutador", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Resumo técnico preliminar")).toBeTruthy();
-      expect(screen.getByText("Jurisprudências encontradas")).toBeTruthy();
-      expect(screen.getByText("STJ")).toBeTruthy();
-      expect(screen.getByText("REsp 1.657.156 / SP")).toBeTruthy();
+      expect(screen.getByText("Evidências encontradas")).toBeTruthy();
+      expect(screen.getByRole("tab", { name: "Jurisprudências (carregando...)" })).toBeTruthy();
+      expect(screen.getByRole("tab", { name: "Minuta (carregando...)" })).toBeTruthy();
+      expect(screen.getAllByText("Carregando evidências...").length).toBeGreaterThan(0);
       expect(screen.getByText("Gerando resumo técnico preliminar... aguarde. Os dados do processo já estão disponíveis para consulta.")).toBeTruthy();
     });
 
@@ -177,7 +178,7 @@ describe("Minutador", () => {
     });
 
     const resumoTab = screen.getByRole("tab", { name: "Resumo técnico" });
-    const minutaTab = screen.getByRole("tab", { name: "Minuta" });
+    const minutaTab = await screen.findByRole("tab", { name: "Minuta" });
     expect(resumoTab.getAttribute("aria-selected")).toBe("true");
     expect(minutaTab.getAttribute("aria-selected")).toBe("false");
 
@@ -185,7 +186,7 @@ describe("Minutador", () => {
       expect(screen.getByText("Solicitação administrativa de medicamento"));
       expect(screen.getByText("Medicamento solicitado"));
       expect(screen.getByText("medicamento oncológico de alto custo não incorporado ao SUS"));
-      expect(screen.getByText("Evidências clínicas do processo"));
+      expect(screen.getByText("Evidências Clínicas"));
       expect(screen.getByText("Laudo médico informa tratamento oncológico e necessidade terapêutica."));
       expect(screen.getByText("Confronto com documentação de suporte"));
       expect(screen.getByText("CID validado: Não"));
@@ -201,7 +202,7 @@ describe("Minutador", () => {
     await waitFor(() => {
       expect(minutaTab.getAttribute("aria-selected")).toBe("true");
       expect(resumoTab.getAttribute("aria-selected")).toBe("false");
-      expect(screen.getByDisplayValue("MINUTA GERADA COM RESUMO REAL")).toBeTruthy();
+      expect(screen.getByText("MINUTA GERADA COM RESUMO REAL")).toBeTruthy();
     });
   });
 
