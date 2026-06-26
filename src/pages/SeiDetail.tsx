@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { seis, getEffectiveSei, jurisprudencias, type Priority } from "@/data/mock";
+import { getEffectiveSei, type Priority } from "@/data/mock";
+import { useSeiDetail } from "@/services/domainData";
 import { PriorityBadge, StatusBadge, OriginBadge } from "@/components/shared/Badges";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, FileEdit, Flag, Scale, Bot, Eye, Sparkles } from "lucide-react";
@@ -16,10 +17,10 @@ import { toast } from "sonner";
 
 const SeiDetail = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
+  const { data, isLoading, error } = useSeiDetail(id);
   const { drafts, priorities, getEvents, changePriority } = useDrafts();
   const { user } = useAuth();
-  const base = seis.find((s) => s.id === id);
+  const base = data?.sei;
   const sei = base ? getEffectiveSei(base, drafts, priorities) : undefined;
 
   const [priorityOpen, setPriorityOpen] = useState(false);
@@ -28,12 +29,13 @@ const SeiDetail = () => {
   const draft = sei ? drafts[sei.id] : undefined;
   const events = useMemo(() => (sei ? getEvents(sei.id) : []), [sei, getEvents]);
 
-  const juris = useMemo(
-    () => (sei ? jurisprudencias.filter((j) => sei.jurisprudenciasSugeridas.includes(j.id)) : []),
-    [sei]
-  );
+  const juris = data?.jurisprudencias ?? [];
 
-  if (!sei || !base) {
+  if (isLoading) {
+    return <AppLayout title="Carregando SEI" subtitle="Buscando dados do backend..." />;
+  }
+
+  if (error || !sei || !base) {
     return (
       <AppLayout title="SEI não encontrado">
         <Button asChild variant="outline"><Link to="/seis"><ArrowLeft className="h-4 w-4 mr-2" /> Voltar</Link></Button>
@@ -43,7 +45,7 @@ const SeiDetail = () => {
 
   // Texto da minuta exibido no detalhe (somente leitura aqui):
   // se há rascunho humano, mostra a versão atual; senão, uma prévia da sugestão da IA.
-  const minutaPreview = draft?.minuta ?? sei.iaSugestao;
+  const minutaPreview = draft?.minuta ?? data?.minuta ?? sei.iaSugestao;
 
   // Histórico completo: eventos base + eventos dinâmicos
   const baseHistorico = [

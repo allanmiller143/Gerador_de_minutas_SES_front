@@ -32,7 +32,6 @@ const Dashboard = () => {
   const emRevisao = data.filter((s) => s.status === "Em revisão");
   const revisadosHumanos = data.filter((s) => s.status === "Concluído").slice(0, 4);
 
-
   return (
     <AppLayout title="Dashboard" subtitle="Visão geral da análise de processos">
       <div className="mb-6 rounded-xl border border-border bg-gradient-to-r from-accent/60 to-card p-4 flex items-start gap-3">

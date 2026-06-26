@@ -1,6 +1,7 @@
 // Cliente HTTP com JWT (access + refresh) e refresh automático em 401.
 
-import { ProcessoSEI, DashboardMetrics } from "../types/sei"; //Importa as interfaces de tipagem.
+import { ProcessoSEI, DashboardMetrics } from "../types/sei";
+import { computeMetrics } from "../data/mock";
 
 export const API_BASE_URL =
   (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, "") ||
@@ -122,13 +123,11 @@ export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Pro
   return data as T;
 }
 
-
-//Modelagem e requisições do dashboard
-
 export const fetchProcessos = async (): Promise<ProcessoSEI[]> => {
-  return api<ProcessoSEI[]>("/api/processos");
+  const data = await api<{ seis: ProcessoSEI[] }>("/api/seis");
+  return data.seis;
 };
 
-export const fetchMetrics = async (_processos: ProcessoSEI[]): Promise<DashboardMetrics> => {
-  return api<DashboardMetrics>("/api/dashboard/metrics");
+export const fetchMetrics = async (processos: ProcessoSEI[]): Promise<DashboardMetrics> => {
+  return computeMetrics(processos as any);
 };

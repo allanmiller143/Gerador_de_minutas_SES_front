@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PriorityBadge, StatusBadge } from "@/components/shared/Badges";
-import { seis, getEffectiveList, type SeiStatus } from "@/data/mock";
+import { getEffectiveList, type SeiStatus } from "@/data/mock";
+import { useSeis } from "@/services/domainData";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,6 +16,7 @@ const SeisList = () => {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("Todos");
   const { drafts, priorities } = useDrafts();
+  const { data: seis = [], isLoading, error } = useSeis();
 
   const filtered = useMemo(() => {
     return getEffectiveList(seis, drafts, priorities).filter((s) => {
@@ -22,7 +24,15 @@ const SeisList = () => {
       const matchS = status === "Todos" || s.status === status;
       return matchQ && matchS;
     });
-  }, [q, status, drafts, priorities]);
+  }, [q, status, drafts, priorities, seis]);
+
+  if (isLoading) {
+    return <AppLayout title="SEIs" subtitle="Carregando dados do backend..." />;
+  }
+
+  if (error) {
+    return <AppLayout title="SEIs" subtitle="Não foi possível carregar os dados do backend." />;
+  }
 
   return (
     <AppLayout title="SEIs" subtitle="Processos SEI cadastrados no sistema">

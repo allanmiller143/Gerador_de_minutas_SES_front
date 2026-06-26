@@ -1,0 +1,135 @@
+.rich-text-editor-container {
+  display: flex;
+  flex-direction: column;
+  background: hsl(var(--background));
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--border));
+  overflow: hidden;
+}
+
+.rich-text-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid hsl(var(--border));
+  background: hsl(var(--muted) / 0.3);
+  flex-wrap: wrap;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 1.5rem;
+  background: hsl(var(--border));
+  margin: 0 0.25rem;
+}
+
+.rich-text-content {
+  padding: 2rem;
+  outline: none;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: hsl(var(--foreground));
+  flex: 1;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-y: auto;
+  max-height: 100vh;
+}
+
+.rich-text-content:focus {
+  outline: none;
+}
+
+.rich-text-content:empty::before {
+  content: attr(data-placeholder);
+  color: hsl(var(--muted-foreground));
+}
+
+/* Estilos padrão do editor */
+.rich-text-content p {
+  margin: 0.5rem 0;
+}
+
+.rich-text-content h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 1.5rem 0 0.5rem 0;
+  line-height: 1.2;
+}
+
+.rich-text-content h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 1.25rem 0 0.5rem 0;
+  line-height: 1.3;
+}
+
+.rich-text-content h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 1rem 0 0.5rem 0;
+}
+
+.rich-text-content ul,
+.rich-text-content ol {
+  margin: 0.75rem 0;
+  padding-left: 2rem;
+}
+
+.rich-text-content li {
+  margin: 0.25rem 0;
+}
+
+.rich-text-content blockquote {
+  border-left: 4px solid hsl(var(--primary));
+  padding-left: 1rem;
+  margin: 1rem 0;
+  color: hsl(var(--muted-foreground));
+  font-style: italic;
+}
+
+.rich-text-content strong {
+  font-weight: 600;
+}
+
+.rich-text-content em {
+  font-style: italic;
+}
+
+.rich-text-content s {
+  text-decoration: line-through;
+}
+
+.rich-text-content code {
+  background: hsl(var(--muted));
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+.rich-text-content pre {
+  background: hsl(var(--muted));
+  padding: 1rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin: 0.75rem 0;
+}
+
+.rich-text-content pre code {
+  background: none;
+  padding: 0;
+  color: inherit;
+}
+
+/* Para modo read-only */
+.rich-text-editor-container[data-readonly="true"] {
+  opacity: 0.9;
+}
+
+.rich-text-editor-container[data-readonly="true"] .rich-text-content {
+  background: hsl(var(--muted) / 0.2);
+  cursor: default;
+}

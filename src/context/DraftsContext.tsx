@@ -79,7 +79,7 @@ export const DraftsProvider = ({ children }: { children: ReactNode }) => {
     return next;
   };
 
-const saveDraft: DraftsContextValue["saveDraft"] = (d) => {
+  const saveDraft: DraftsContextValue["saveDraft"] = (d) => {
     const now = new Date().toISOString();
     let hadExisting = false;
     setDrafts((prev) => {
