@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useCallback 
 import type { Priority } from "@/data/mock";
 
 export interface Draft {
-  seiId: string;
+  seiId: number;
   minuta: string;
   ownerEmail: string;
   ownerName: string;
@@ -12,7 +12,7 @@ export interface Draft {
 }
 
 export interface PriorityOverride {
-  seiId: string;
+  seiId: number;
   priority: Priority;
   changedBy: string;
   changedByEmail: string;
@@ -20,7 +20,7 @@ export interface PriorityOverride {
 }
 
 export interface SeiEvent {
-  seiId: string;
+  seiId: number;
   type: "draft_saved" | "finalized" | "priority_changed" | "review_started";
   actor: string;
   at: string; // ISO
@@ -28,15 +28,15 @@ export interface SeiEvent {
 }
 
 interface DraftsContextValue {
-  drafts: Record<string, Draft>;
-  priorities: Record<string, PriorityOverride>;
+  drafts: Record<number, Draft>;
+  priorities: Record<number, PriorityOverride>;
   events: SeiEvent[];
-  getDraft: (seiId: string) => Draft | undefined;
-  getPriority: (seiId: string) => PriorityOverride | undefined;
-  getEvents: (seiId: string) => SeiEvent[];
+  getDraft: (seiId: number) => Draft | undefined;
+  getPriority: (seiId: number) => PriorityOverride | undefined;
+  getEvents: (seiId: number) => SeiEvent[];
   saveDraft: (d: Omit<Draft, "updatedAt" | "status"> & { status?: Draft["status"] }) => void;
-  finalizeDraft: (seiId: string, actor: string) => void;
-  changePriority: (seiId: string, priority: Priority, actor: string, actorEmail: string, previous: Priority) => void;
+  finalizeDraft: (seiId: number, actor: string) => void;
+  changePriority: (seiId: number, priority: Priority, actor: string, actorEmail: string, previous: Priority) => void;
 }
 
 const DraftsContext = createContext<DraftsContextValue | undefined>(undefined);
@@ -46,8 +46,8 @@ const PRIORITIES_KEY = "ses_sei_priorities";
 const EVENTS_KEY = "ses_sei_events";
 
 export const DraftsProvider = ({ children }: { children: ReactNode }) => {
-  const [drafts, setDrafts] = useState<Record<string, Draft>>({});
-  const [priorities, setPriorities] = useState<Record<string, PriorityOverride>>({});
+  const [drafts, setDrafts] = useState<Record<number, Draft>>({});
+  const [priorities, setPriorities] = useState<Record<number, PriorityOverride>>({});
   const [events, setEvents] = useState<SeiEvent[]>([]);
 
   useEffect(() => {
@@ -56,11 +56,11 @@ export const DraftsProvider = ({ children }: { children: ReactNode }) => {
     try { const r = localStorage.getItem(EVENTS_KEY); if (r) setEvents(JSON.parse(r)); } catch {}
   }, []);
 
-  const persistDrafts = (next: Record<string, Draft>) => {
+  const persistDrafts = (next: Record<number, Draft>) => {
     setDrafts(next);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   };
-  const persistPriorities = (next: Record<string, PriorityOverride>) => {
+  const persistPriorities = (next: Record<number, PriorityOverride>) => {
     setPriorities(next);
     localStorage.setItem(PRIORITIES_KEY, JSON.stringify(next));
   };
@@ -69,9 +69,9 @@ export const DraftsProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem(EVENTS_KEY, JSON.stringify(next));
   };
 
-  const getDraft = useCallback((seiId: string) => drafts[seiId], [drafts]);
-  const getPriority = useCallback((seiId: string) => priorities[seiId], [priorities]);
-  const getEvents = useCallback((seiId: string) => events.filter((e) => e.seiId === seiId), [events]);
+  const getDraft = useCallback((seiId: number | string) => drafts[Number(seiId)] ?? drafts[String(seiId)] ?? Object.values(drafts).find(d => String(d.seiId) === String(seiId)), [drafts]);
+  const getPriority = useCallback((seiId: number | string) => priorities[Number(seiId)] ?? priorities[String(seiId)], [priorities]);
+  const getEvents = useCallback((seiId: number | string) => events.filter((e) => String(e.seiId) === String(seiId)), [events]);
 
   const addEvent = (ev: SeiEvent, currentEvents: SeiEvent[]) => {
     const next = [...currentEvents, ev];
@@ -79,7 +79,7 @@ export const DraftsProvider = ({ children }: { children: ReactNode }) => {
     return next;
   };
 
-const saveDraft: DraftsContextValue["saveDraft"] = (d) => {
+  const saveDraft: DraftsContextValue["saveDraft"] = (d) => {
     const now = new Date().toISOString();
     let hadExisting = false;
     setDrafts((prev) => {
@@ -109,7 +109,7 @@ const saveDraft: DraftsContextValue["saveDraft"] = (d) => {
     });
   };
 
-  const finalizeDraft = (seiId: string, actor: string) => {
+  const finalizeDraft = (seiId: number, actor: string) => {
     const now = new Date().toISOString();
     setDrafts((prev) => {
       const existing = prev[seiId];

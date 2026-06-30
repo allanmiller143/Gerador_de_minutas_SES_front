@@ -1,27 +1,33 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { seis, jurisprudencias } from "@/data/mock";
+import { jurisprudencias } from "@/data/mock";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Check, CheckCircle2, Save, Lock, Bot, Scale } from "lucide-react";
+import { ArrowLeft, Check, CheckCircle2, Save, Lock, Bot, Scale, Sparkles, FileText, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { downloadProcessoPDF, downloadKnowledgeBaseFile } from "@/lib/api";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { useDrafts } from "@/context/DraftsContext";
+import { useProcessos, useAnalisarProcesso } from "@/hooks/useProcessos";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ProcessoSEI } from "@/types/sei";
+import { Progress } from "@/components/ui/progress";
+
 
 const etapas = ["Pré-análise", "Jurisprudências", "Minuta gerada", "Revisão humana"];
 
 const Minutador = () => {
   const { id } = useParams();
-  const sei = seis.find((s) => s.id === id) ?? seis[0];
+  const { data: processos, isLoading } = useProcessos();
   const { user } = useAuth();
   const { getDraft, saveDraft, finalizeDraft } = useDrafts();
 
-  const existingDraft = getDraft(sei.id);
+  const processoId = Number(id);
 
-  const [minuta, setMinuta] = useState(
-    existingDraft?.minuta ?? gerarMinuta(sei.numero, sei.assunto)
-  );
+  // Busca o processo na lista mesclada global do React Query
+  const sei = useMemo(() => processos?.find((s) => s.id === processoId), [processos, processoId]);
+  const existingDraft = useMemo(() => getDraft(processoId), [processoId, getDraft]);
 
   const isAdmin = user?.role === "administrador";
   const isLockedByOther = !!existingDraft && !!user && existingDraft.ownerEmail !== user.email && !isAdmin;
@@ -31,10 +37,123 @@ const Minutador = () => {
   // A IA já terminou tudo off-line. Ao abrir o editor, estamos sempre na etapa de revisão humana.
   const etapaAtual = 3;
 
-  const juris = useMemo(
-    () => jurisprudencias.filter((j) => sei.jurisprudenciasSugeridas.includes(j.id)),
-    [sei.id]
-  );
+  // Estado reativo para a minuta que está sendo editada
+  const [minuta, setMinuta] = useState("");
+
+  // Mutação para chamar o serviço Gemini IA
+  const { mutateAsync: analisarProcesso, isPending: isAnalyzing } = useAnalisarProcesso();
+
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  // Limpa o nome do arquivo, removendo caminhos e o prefixo do UUID
+  const cleanFilename = (path: string) => {
+    if (!path) return "";
+    const parts = path.split("/");
+    const base = parts[parts.length - 1];
+    const match = base.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}_(.+)$/i);
+    return match ? match[1] : base;
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!sei || !sei.arquivoPdf) return;
+    try {
+      setIsDownloading(true);
+      const originalName = cleanFilename(sei.arquivoPdf);
+      toast.info(`Iniciando o download do arquivo "${originalName}"...`);
+      await downloadProcessoPDF(sei.id, originalName);
+      toast.success("Download concluído com sucesso!");
+    } catch (error: any) {
+      console.error(error);
+      toast.error(`Falha ao baixar o arquivo: ${error?.message || "Erro de conexão"}`);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const [downloadingKB, setDownloadingKB] = useState<string | null>(null);
+
+  const handleDownloadKB = async (filePath: string) => {
+    try {
+      setDownloadingKB(filePath);
+      const fileName = filePath.split("/").pop() || "documento.pdf";
+      toast.info(`Iniciando o download de "${fileName}"...`);
+      await downloadKnowledgeBaseFile(filePath);
+      toast.success(`Download de "${fileName}" concluído!`);
+    } catch (error: any) {
+      console.error(error);
+      toast.error(`Falha ao baixar o arquivo da base de conhecimento: ${error?.message || "Erro de conexão"}`);
+    } finally {
+      setDownloadingKB(null);
+    }
+  };
+
+
+
+  const handleAnalisarIA = async () => {
+    try {
+      toast.info("Iniciando a análise do processo com o Gemini IA... Isso pode levar alguns segundos.");
+      const updatedSei = await analisarProcesso(processoId);
+      
+      if (updatedSei) {
+        const novaMinuta = gerarMinuta(updatedSei);
+        setMinuta(novaMinuta);
+        toast.success("Minuta gerada com sucesso pela IA do Gemini!");
+      }
+    } catch (error: any) {
+      console.error(error);
+      toast.error(`Falha ao gerar minuta por IA: ${error?.message || "Erro desconhecido"}`);
+    }
+  };
+
+  // Sincroniza a minuta assim que os dados do processo e rascunho carregarem
+  useEffect(() => {
+    if (sei) {
+      setMinuta((prev) => {
+        const generated = gerarMinuta(sei);
+        if (!prev || prev === generated) {
+          return existingDraft?.minuta || generated;
+        }
+        return prev;
+      });
+    }
+  }, [sei, existingDraft]);
+
+  const { mockJuris, documentosIA } = useMemo(() => {
+    if (!sei) return { mockJuris: [], documentosIA: [] };
+    const mockList = jurisprudencias.filter((j) => sei.jurisprudenciasSugeridas.includes(j.id));
+    const docsList = sei.jurisprudenciasSugeridas.filter(
+      (item) => typeof item === "string" && (!item.startsWith("j") || item.length > 3)
+    );
+    return { mockJuris: mockList, documentosIA: docsList };
+  }, [sei]);
+
+  if (isLoading) {
+    return (
+      <AppLayout title="Carregando..." subtitle="Buscando informações do processo SEI">
+        <div className="space-y-6 p-4">
+          <Skeleton className="h-10 w-28 rounded-md" />
+          <Skeleton className="h-[80px] w-full rounded-xl" />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Skeleton className="h-[450px] lg:col-span-2 rounded-xl" />
+            <Skeleton className="h-[450px] rounded-xl" />
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!sei) {
+    return (
+      <AppLayout title="Processo não encontrado">
+        <div className="p-4 space-y-4">
+          <p className="text-muted-foreground">O processo solicitado não existe ou foi removido do sistema.</p>
+          <Button asChild variant="outline">
+            <Link to="/seis"><ArrowLeft className="h-4 w-4 mr-2" /> Voltar para a lista</Link>
+          </Button>
+        </div>
+      </AppLayout>
+    );
+  }
 
   // Admin edita em nome do analista original (preserva autoria). Usuário comum salva como dono.
   const effectiveOwnerEmail = isAdmin && existingDraft ? existingDraft.ownerEmail : user?.email ?? "";
@@ -48,17 +167,17 @@ const Minutador = () => {
     if (isLockedByOther) { toast.error("Esta análise pertence a outro usuário."); return; }
 
     //Define qual é o texto original da IA para este processo.
-    const textoOriginal = gerarMinuta(sei.numero, sei.assunto); //Quando tiver uma API real alterar para: const textoOriginal = sei.iaSugestao;
+    const textoOriginal = sei.iaSugestao;
 
     //Compara se o texto atual na tela (sendo editado) é diferente do original.
     const mudouOTexto = normalizar(minuta) !== normalizar(textoOriginal);
 
-    saveDraft({ 
-      seiId: sei.id, 
-      minuta, 
-      ownerEmail: effectiveOwnerEmail, 
+    saveDraft({
+      seiId: sei.id,
+      minuta,
+      ownerEmail: effectiveOwnerEmail,
       ownerName: effectiveOwnerName,
-      foiAlterado: mudouOTexto 
+      foiAlterado: mudouOTexto
     });
 
     toast.success(isAdmin && existingDraft && existingDraft.ownerEmail !== user.email
@@ -70,15 +189,15 @@ const Minutador = () => {
     if (!user) return;
     if (isLockedByOther) { toast.error("Esta análise pertence a outro usuário."); return; }
 
-    const textoOriginal = gerarMinuta(sei.numero, sei.assunto);
+    const textoOriginal = gerarMinuta(sei);
     const mudouOTexto = normalizar(minuta) !== normalizar(textoOriginal);
 
-    saveDraft({ 
-      seiId: sei.id, 
-      minuta, 
-      ownerEmail: effectiveOwnerEmail, 
+    saveDraft({
+      seiId: sei.id,
+      minuta,
+      ownerEmail: effectiveOwnerEmail,
       ownerName: effectiveOwnerName,
-      foiAlterado: mudouOTexto 
+      foiAlterado: mudouOTexto
     });
 
     finalizeDraft(sei.id, user.name);
@@ -103,8 +222,8 @@ const Minutador = () => {
                   <div className={cn(
                     "h-9 w-9 rounded-full flex items-center justify-center font-semibold text-sm transition-colors",
                     complete ? "bg-success text-success-foreground" :
-                    active ? "bg-primary text-primary-foreground ring-4 ring-primary/20" :
-                    "bg-secondary text-muted-foreground"
+                      active ? "bg-primary text-primary-foreground ring-4 ring-primary/20" :
+                        "bg-secondary text-muted-foreground"
                   )}>
                     {complete ? <Check className="h-4 w-4" /> : i + 1}
                   </div>
@@ -159,77 +278,157 @@ const Minutador = () => {
               )}
             </div>
             {!readOnly && (
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={handleSaveDraft}>
+              <div className="flex gap-2 items-center">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleAnalisarIA} 
+                  disabled={isAnalyzing}
+                  className="border-primary/40 text-primary hover:bg-primary/5 hover:text-primary transition-all"
+                >
+                  <Sparkles className={cn("h-4 w-4 mr-2 text-primary", isAnalyzing && "animate-spin")} />
+                  Analisar com Gemini IA
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleSaveDraft} disabled={isAnalyzing}>
                   <Save className="h-4 w-4 mr-2" /> Salvar rascunho
                 </Button>
-                <Button size="sm" onClick={handleFinalize}>
+                <Button size="sm" onClick={handleFinalize} disabled={isAnalyzing}>
                   <CheckCircle2 className="h-4 w-4 mr-2" /> Finalizar análise
                 </Button>
               </div>
             )}
           </div>
 
+          {isAnalyzing && (
+            <div className="mb-4 space-y-2 p-3 bg-primary/5 rounded-lg border border-primary/20 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="flex justify-between items-center text-xs font-medium text-primary">
+                <span className="flex items-center gap-1.5">
+                  <Bot className="h-3.5 w-3.5 animate-bounce" />
+                  O Gemini está analisando os PDFs do processo e as normas técnicas...
+                </span>
+              </div>
+              <div className="h-2 w-full bg-primary/10 rounded-full overflow-hidden">
+                <div className="h-full bg-primary w-full animate-pulse rounded-full" />
+              </div>
+            </div>
+          )}
+
+          {/* Informações do Arquivo PDF do Processo */}
+          <div className="mb-4 p-4 rounded-xl border border-border bg-secondary/15 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg text-primary mt-0.5 shrink-0">
+                <FileText className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-xs text-muted-foreground font-medium block">Documento Original do Processo</span>
+                <span className="text-sm font-semibold text-foreground break-all" title={sei.arquivoPdf || "Sem arquivo cadastrado"}>
+                  {sei.arquivoPdf ? cleanFilename(sei.arquivoPdf) : "Nenhum arquivo anexado a este processo."}
+                </span>
+              </div>
+            </div>
+            {sei.arquivoPdf && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadPDF}
+                disabled={isDownloading}
+                className="shrink-0 bg-background hover:bg-secondary border-border shadow-sm flex items-center gap-2"
+              >
+                <Download className={cn("h-4 w-4", isDownloading && "animate-pulse")} />
+                {isDownloading ? "Baixando..." : "Baixar PDF Original"}
+              </Button>
+            )}
+          </div>
+
           <textarea
             value={minuta}
             onChange={(e) => setMinuta(e.target.value)}
-            readOnly={readOnly}
+            readOnly={readOnly || isAnalyzing}
             className={cn(
               "w-full min-h-[420px] border border-border rounded-lg p-4 text-sm font-mono leading-relaxed bg-background focus:outline-none focus:ring-2 focus:ring-ring resize-y",
-              readOnly && "bg-secondary/40 cursor-not-allowed"
+              (readOnly || isAnalyzing) && "bg-secondary/40 cursor-not-allowed"
             )}
           />
         </section>
 
-        <aside className="bg-card border border-border rounded-xl shadow-card p-5 h-fit">
-          <div className="flex items-center gap-2 mb-3">
-            <Scale className="h-4 w-4 text-primary" />
-            <h3 className="font-semibold text-sm">Jurisprudências encontradas</h3>
+        <aside className="bg-card border border-border rounded-xl shadow-card p-5 h-fit space-y-6">
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Scale className="h-4 w-4 text-primary" />
+              <h3 className="font-semibold text-sm">Jurisprudências encontradas</h3>
+            </div>
+            <p className="text-xs text-muted-foreground mb-4">
+              Selecionadas pela IA com base no tema do processo.
+            </p>
+            <ul className="space-y-3">
+              {mockJuris.map((j) => (
+                <li key={j.id} className="border border-border rounded-lg p-3 hover:bg-secondary/40 transition-colors">
+                  <div className="text-xs font-semibold text-primary">{j.tribunal}</div>
+                  <div className="font-mono text-[11px] text-muted-foreground mb-1">{j.numero}</div>
+                  <div className="text-sm font-medium mb-1">{j.tema}</div>
+                  <p className="text-xs text-muted-foreground line-clamp-3">{j.resumo}</p>
+                </li>
+              ))}
+              {mockJuris.length === 0 && (
+                <li className="text-xs text-muted-foreground">Nenhuma jurisprudência associada.</li>
+              )}
+            </ul>
           </div>
-          <p className="text-xs text-muted-foreground mb-4">
-            Selecionadas pela IA com base no tema do processo.
-          </p>
-          <ul className="space-y-3">
-            {juris.map((j) => (
-              <li key={j.id} className="border border-border rounded-lg p-3 hover:bg-secondary/40 transition-colors">
-                <div className="text-xs font-semibold text-primary">{j.tribunal}</div>
-                <div className="font-mono text-[11px] text-muted-foreground mb-1">{j.numero}</div>
-                <div className="text-sm font-medium mb-1">{j.tema}</div>
-                <p className="text-xs text-muted-foreground line-clamp-3">{j.resumo}</p>
-              </li>
-            ))}
-            {juris.length === 0 && (
-              <li className="text-xs text-muted-foreground">Nenhuma jurisprudência associada.</li>
-            )}
-          </ul>
+
+          {documentosIA.length > 0 && (
+            <div className="border-t border-border pt-4">
+              <div className="flex items-center gap-2 mb-3">
+                <FileText className="h-4 w-4 text-primary" />
+                <h3 className="font-semibold text-sm">Base de Conhecimento IA</h3>
+              </div>
+              <p className="text-xs text-muted-foreground mb-4">
+                Documentos e diretrizes técnicas utilizados para fundamentar esta minuta.
+              </p>
+              <ul className="space-y-2">
+                {documentosIA.map((doc, idx) => {
+                  const filename = doc.split("/").pop() || doc;
+                  const isDownloadingThis = downloadingKB === doc;
+                  return (
+                    <li key={idx} className="border border-border rounded-lg p-2.5 bg-primary/5 hover:bg-primary/10 transition-all flex items-center justify-between gap-3">
+                      <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                        <Bot className="h-4 w-4 text-primary/70 shrink-0 mt-0.5" />
+                        <span 
+                          className="text-xs font-medium text-foreground truncate block cursor-help" 
+                          title={doc}
+                        >
+                          {filename}
+                        </span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDownloadKB(doc)}
+                        disabled={isDownloadingThis}
+                        className="h-7 w-7 shrink-0 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
+                        title={`Baixar ${filename}`}
+                      >
+                        <Download className={cn("h-3.5 w-3.5", isDownloadingThis && "animate-pulse")} />
+                      </Button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
         </aside>
       </div>
     </AppLayout>
   );
 };
 
-function gerarMinuta(numero: string, assunto: string) {
+function gerarMinuta(sei: ProcessoSEI) {
   return `EXCELENTÍSSIMO(A) SENHOR(A) DOUTOR(A) JUIZ(A) DE DIREITO
 
-Processo SEI: ${numero}
-Assunto: ${assunto}
+Processo SEI: ${sei.numero}
+Assunto: ${sei.assunto}
 
-A SECRETARIA DE ESTADO DA SAÚDE, por meio da Farmácia/Assistência Farmacêutica, vem, respeitosamente, apresentar manifestação nos autos em epígrafe, nos seguintes termos:
-
-1. DO RELATÓRIO
-Trata-se de demanda relativa ao fornecimento de medicamento/insumo, na qual a parte autora pleiteia providências junto ao Poder Público.
-
-2. DA ANÁLISE TÉCNICO-FARMACÊUTICA
-Após análise da documentação médica apresentada, verifica-se a necessidade de avaliação quanto à imprescindibilidade do tratamento, à existência de alternativas terapêuticas no SUS e à observância dos protocolos clínicos vigentes.
-
-3. DO DIREITO
-O entendimento dos tribunais superiores é consolidado no sentido de que o dever do Estado no fornecimento de medicamentos pressupõe a demonstração dos requisitos da imprescindibilidade, inexistência de alternativa fornecida pelo SUS e capacidade financeira, conforme Tema 793/STF e REsp 1.657.156/SP.
-
-4. DA CONCLUSÃO
-Ante o exposto, manifesta-se pela observância dos requisitos legais and jurisprudenciais indicados, submetendo-se a presente minuta à revisão da coordenação.
-
-Atenciosamente,
-Analista – Farmácia da SES.`;
+${sei.iaSugestao}
+`;
 }
 
 export default Minutador;

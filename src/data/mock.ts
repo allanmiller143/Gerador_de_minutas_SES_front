@@ -9,7 +9,7 @@ export type SeiStatus =
 export type UserRole = "analista" | "administrador";
 
 export interface Sei {
-  id: string;
+  id: number;
   numero: string;
   assunto: string;
   dataRecebimento: string;
@@ -38,7 +38,7 @@ export interface Jurisprudencia {
 
 export const seis: Sei[] = [
   {
-    id: "1",
+    id: 1,
     numero: "0001234-56.2024.8.26.0053",
     assunto: "Fornecimento de medicamento oncológico",
     dataRecebimento: "20/05/2024",
@@ -52,7 +52,7 @@ export const seis: Sei[] = [
     jurisprudenciasSugeridas: ["j1", "j2", "j4"],
   },
   {
-    id: "2",
+    id: 2,
     numero: "0002345-67.2024.8.26.0053",
     assunto: "Fornecimento de medicamento",
     dataRecebimento: "19/05/2024",
@@ -66,7 +66,7 @@ export const seis: Sei[] = [
     jurisprudenciasSugeridas: ["j2"],
   },
   {
-    id: "3",
+    id: 3,
     numero: "0003456-78.2024.8.26.0053",
     assunto: "Fornecimento de insumo",
     dataRecebimento: "18/05/2024",
@@ -80,7 +80,7 @@ export const seis: Sei[] = [
     jurisprudenciasSugeridas: ["j3"],
   },
   {
-    id: "4",
+    id: 4,
     numero: "0004567-89.2024.8.26.0053",
     assunto: "Fornecimento de medicamento",
     dataRecebimento: "17/05/2024",
@@ -94,7 +94,7 @@ export const seis: Sei[] = [
     jurisprudenciasSugeridas: ["j5"],
   },
   {
-    id: "5",
+    id: 5,
     numero: "0005678-90.2024.8.26.0053",
     assunto: "Medicamento órfão",
     dataRecebimento: "16/05/2024",
@@ -109,7 +109,7 @@ export const seis: Sei[] = [
     jurisprudenciasSugeridas: ["j1", "j4"],
   },
   {
-    id: "6",
+    id: 6,
     numero: "0006789-01.2024.8.26.0053",
     assunto: "Fornecimento de fórmula nutricional",
     dataRecebimento: "15/05/2024",
@@ -123,7 +123,7 @@ export const seis: Sei[] = [
     jurisprudenciasSugeridas: ["j2"],
   },
   {
-    id: "7",
+    id: 7,
     numero: "0001111-11.2024.8.26.0053",
     assunto: "Fornecimento de medicamento",
     dataRecebimento: "10/05/2024",
@@ -138,7 +138,7 @@ export const seis: Sei[] = [
     jurisprudenciasSugeridas: ["j2", "j4"],
   },
   {
-    id: "8",
+    id: 8,
     numero: "0001222-22.2024.8.26.0053",
     assunto: "Medicamento de alto custo",
     dataRecebimento: "08/05/2024",
@@ -153,7 +153,7 @@ export const seis: Sei[] = [
     jurisprudenciasSugeridas: ["j1", "j2"],
   },
   {
-    id: "9",
+    id: 9,
     numero: "0001333-33.2024.8.26.0053",
     assunto: "Insumo para diabetes",
     dataRecebimento: "05/05/2024",
@@ -168,7 +168,7 @@ export const seis: Sei[] = [
     jurisprudenciasSugeridas: ["j3"],
   },
   {
-    id: "10",
+    id: 10,
     numero: "0001444-44.2024.8.26.0053",
     assunto: "Fornecimento de medicamento",
     dataRecebimento: "03/05/2024",
@@ -242,7 +242,7 @@ export const jurisprudencias: Jurisprudencia[] = [
  * edições salvas de qualquer usuário.
  */
 export interface DraftLike {
-  seiId: string;
+  seiId: number;
   ownerName: string;
   ownerEmail: string;
   status: "Em revisão" | "Concluído";
@@ -250,7 +250,7 @@ export interface DraftLike {
 }
 
 export interface PriorityLike {
-  seiId: string;
+  seiId: number;
   priority: Priority;
   updatedAt: string;
 }

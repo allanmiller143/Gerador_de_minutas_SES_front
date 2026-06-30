@@ -1,15 +1,18 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MetricCard } from "@/components/shared/MetricCard";
 import { PriorityBadge, StatusBadge, OriginBadge } from "@/components/shared/Badges";
-import { Bot, UserCheck, Send, FileStack, ArrowRight, Eye, Sparkles } from "lucide-react";
+import { Bot, UserCheck, Send, FileStack, ArrowRight, Eye, Sparkles, FileUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useDashboard } from "@/hooks/useDashboard";
 import { Skeleton } from "@/components/ui/skeleton";
+import { UploadDraftModal } from "@/components/shared/UploadDraftModal";
 
 const Dashboard = () => {
   const { data, metrics, isLoading } = useDashboard();
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
   if (isLoading || !metrics) {
     return (
@@ -35,16 +38,22 @@ const Dashboard = () => {
 
   return (
     <AppLayout title="Dashboard" subtitle="Visão geral da análise de processos">
-      <div className="mb-6 rounded-xl border border-border bg-gradient-to-r from-accent/60 to-card p-4 flex items-start gap-3">
-        <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-          <Sparkles className="h-4 w-4 text-primary" />
+      <div className="mb-6 rounded-xl border border-border bg-gradient-to-r from-accent/60 to-card p-4 flex items-start gap-3 justify-between">
+        <div className="flex items-start gap-3">
+          <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <Sparkles className="h-4 w-4 text-primary" />
+          </div>
+          <div className="text-sm">
+            <div className="font-semibold text-foreground">Como funciona</div>
+            <p className="text-muted-foreground">
+              Assim que um processo chega, o sistema realiza a <strong>pré-análise automática com IA</strong>. O trabalho humano é <strong>revisar, ajustar e salvar</strong> a resposta antes do envio oficial.
+            </p>
+          </div>
         </div>
-        <div className="text-sm">
-          <div className="font-semibold text-foreground">Como funciona</div>
-          <p className="text-muted-foreground">
-            Assim que um processo chega, o sistema realiza a <strong>pré-análise automática com IA</strong>. O trabalho humano é <strong>revisar, ajustar e salvar</strong> a resposta antes do envio oficial.
-          </p>
-        </div>
+        <Button onClick={() => setIsUploadModalOpen(true)} className="shrink-0 gap-2">
+          <FileUp className="h-4 w-4" />
+          Upload PDF
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -205,6 +214,11 @@ const Dashboard = () => {
           </table>
         </div>
       </section>
+
+      <UploadDraftModal 
+        isOpen={isUploadModalOpen} 
+        onClose={() => setIsUploadModalOpen(false)} 
+      />
     </AppLayout>
   );
 };

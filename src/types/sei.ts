@@ -6,7 +6,7 @@ export type PrioridadeProcesso = "Alta" | "Média" | "Baixa";
 
 //Estrutura do contrato com os dados detalhados de um processo SEI
 export interface ProcessoSEI {
-  id: string;                           //Identificador 
+  id: number;                           //Identificador 
   numero: string;                       //Número de registro do SEI
   assunto: string;                      //Assunto do processo administrativo
   status: StatusProcesso;               //Estado atual (Pré-análise, Em revisão, Concluído)
