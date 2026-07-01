@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { useDrafts } from "@/context/DraftsContext";
+import { PromptEditorDialog } from "./Resumo_Minuta/PromptEditorDialog";
 
 const etapas = ["Pré-análise", "Jurisprudências", "Minuta gerada", "Revisão humana"];
 
@@ -129,6 +130,7 @@ const Minutador = () => {
         <Button asChild variant="ghost" size="sm"><Link to="/seis"><ArrowLeft className="h-4 w-4 mr-1" /> Voltar</Link></Button>
       </div>
 
+
       {/* Stepper */}
       <div className="bg-card border border-border rounded-xl shadow-card p-6 mb-6">
         <div className="flex items-center justify-between">
@@ -199,7 +201,13 @@ const Minutador = () => {
             <TabsContent value="resumo" className="mt-0">
               <div className="rounded-xl border border-border bg-secondary/20 p-4">
                 <div className="mb-3">
-                  <h2 className="font-semibold">Resumo técnico preliminar</h2>
+                  <div className="flex items-center gap-2 mb-1 justify-between">
+                    <h2 className="font-semibold">Resumo técnico preliminar</h2>
+                    <PromptEditorDialog/>
+                  </div>   
+                  
+
+
                   {activeResumoVersion && (
                     <p className="text-xs text-muted-foreground mt-1">
                       Versão ativa #{activeResumoVersion.version}, gerada em {new Date(activeResumoVersion.generated_at).toLocaleString("pt-BR")} por {activeResumoVersion.generated_by}.

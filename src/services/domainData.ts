@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type { Jurisprudencia, Sei } from "@/data/mock";
+import { toast } from "sonner";
 
 interface SeisResponse {
   seis: Sei[];
@@ -235,4 +236,29 @@ export function useCancelResumoBatchRun() {
 
 export async function fetchSeiPdf(id: string) {
   return api<SeiPdfResponse>(`/api/seis/${id}/pdf`);
+}
+
+export function usePromptConfig(key: string) {
+  return useQuery({
+    queryKey: ["prompts", key],
+    queryFn: async () => api<{
+      key: string;
+      editable_prompt: string;
+      fixed_schema: string;
+      updated_at: string;
+      updated_by: string;
+    }>(`/api/prompts/${key}`),
+  });
+}
+
+export function useUpdatePromptConfig(key: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { editable_prompt: string; updated_by?: string }) =>
+      api(`/api/prompts/${key}`, { method: "PUT", body }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["prompts", key] });
+      toast.success("Prompt atualizado com sucesso.");
+    },
+  });
 }
