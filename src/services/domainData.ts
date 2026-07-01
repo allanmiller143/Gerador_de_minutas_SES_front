@@ -234,6 +234,18 @@ export function useCancelResumoBatchRun() {
   });
 }
 
+export function useUpdateProcesso(id?: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { status?: string; prioridade?: string; foi_alterado?: boolean; minuta?: string }) =>
+      api<any>(`/processos/${id}/status`, { method: "PATCH", body }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: domainDataQueryKeys.seiDetail(id) });
+      queryClient.invalidateQueries({ queryKey: domainDataQueryKeys.seis });
+    },
+  });
+}
+
 export async function fetchSeiPdf(id: string) {
   return api<SeiPdfResponse>(`/api/seis/${id}/pdf`);
 }

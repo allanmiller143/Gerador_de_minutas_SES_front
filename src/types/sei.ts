@@ -6,7 +6,7 @@ export type PrioridadeProcesso = "Alta" | "Média" | "Baixa";
 
 //Estrutura do contrato com os dados detalhados de um processo SEI
 export interface ProcessoSEI {
-  id: string;                           //Identificador 
+  id: number;                           //Identificador 
   numero: string;                       //Número de registro do SEI
   assunto: string;                      //Assunto do processo administrativo
   status: StatusProcesso;               //Estado atual (Pré-análise, Em revisão, Concluído)
@@ -17,6 +17,7 @@ export interface ProcessoSEI {
   dataRevisao?: string;                 //Quando a revisão humana aconteceu (opcional)
   dataPreAnalise: string;               //Data que foi pré-analisado pela IA
   iaSugestao: string;                   //O texto sugerida pela IA
+  minuta?: string;                      //O texto da minuta persistido no banco
   jurisprudenciasSugeridas: any[];      //Lista de jurisprudências 
   isEditadoLocalmente?: boolean;        //Indica se foi editado.
 }

@@ -1,21 +1,30 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { useGenerateResumo, useRestoreResumo, useResumoVersions, useSeiDetail, useSeiResumoTecnico } from "@/services/domainData";
+import { useGenerateResumo, useRestoreResumo, useResumoVersions, useSeiDetail, useSeiResumoTecnico, useUpdateProcesso } from "@/services/domainData";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Check, CheckCircle2, Save, Lock, Bot, FileText, RotateCcw, Loader2 } from "lucide-react";
+import { ArrowLeft, Check, CheckCircle2, Save, Lock, Bot, Sparkles, FileText, RotateCcw, Loader2, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { downloadProcessoPDF, downloadKnowledgeBaseFile } from "@/lib/api";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { useDrafts } from "@/context/DraftsContext";
+import { useAnalisarProcesso } from "@/hooks/useProcessos";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useQueryClient } from "@tanstack/react-query";
+import { domainDataQueryKeys } from "@/services/domainData";
+import ReactMarkdown from "react-markdown";
 import { PromptEditorDialog } from "./Resumo_Minuta/PromptEditorDialog";
 
 const etapas = ["Pré-análise", "Jurisprudências", "Minuta gerada", "Revisão humana"];
 
+
+
 const Minutador = () => {
   const { id } = useParams();
+  const queryClient = useQueryClient();
   const { data, isLoading, error } = useSeiDetail(id);
   const {
     data: resumoData,
@@ -29,28 +38,97 @@ const Minutador = () => {
   const { user } = useAuth();
   const { getDraft, saveDraft, finalizeDraft } = useDrafts();
 
-  const existingDraft = sei ? getDraft(sei.id) : undefined;
+  // Support string or number IDs safely
+  const existingDraft = useMemo(() => {
+    if (!sei) return undefined;
+    return getDraft(sei.id) || getDraft(Number(sei.id));
+  }, [sei, getDraft]);
 
   const [minuta, setMinuta] = useState("");
 
+  // Mutação para chamar o serviço Gemini IA
+  const { mutateAsync: analisarProcesso, isPending: isAnalyzing } = useAnalisarProcesso();
+  const updateProcesso = useUpdateProcesso(id);
+
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  // Limpa o nome do arquivo, removendo caminhos e o prefixo do UUID
+  const cleanFilename = (path: string) => {
+    if (!path) return "";
+    const parts = path.split("/");
+    const base = parts[parts.length - 1];
+    const match = base.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}_(.+)$/i);
+    return match ? match[1] : base;
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!sei || !sei.arquivoPdf) return;
+    try {
+      setIsDownloading(true);
+      const originalName = cleanFilename(sei.arquivoPdf);
+      toast.info(`Iniciando o download do arquivo "${originalName}"...`);
+      await downloadProcessoPDF(Number(sei.id), originalName);
+      toast.success("Download concluído com sucesso!");
+    } catch (error: any) {
+      console.error(error);
+      toast.error(`Falha ao baixar o arquivo: ${error?.message || "Erro de conexão"}`);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const [downloadingKB, setDownloadingKB] = useState<string | null>(null);
+
+  const handleDownloadKB = async (filePath: string) => {
+    try {
+      setDownloadingKB(filePath);
+      const fileName = filePath.split("/").pop() || "documento.pdf";
+      toast.info(`Iniciando o download de "${fileName}"...`);
+      await downloadKnowledgeBaseFile(filePath);
+      toast.success(`Download de "${fileName}" concluído!`);
+    } catch (error: any) {
+      console.error(error);
+      toast.error(`Falha ao baixar o arquivo da base de conhecimento: ${error?.message || "Erro de conexão"}`);
+    } finally {
+      setDownloadingKB(null);
+    }
+  };
+
+  const handleAnalisarIA = async () => {
+    if (!sei) return;
+    try {
+      toast.info("Iniciando a análise do processo com o Gemini IA... Isso pode levar alguns segundos.");
+      const updatedSei = await analisarProcesso(Number(sei.id));
+
+      if (updatedSei) {
+        // Invalidate cache for new versions & resumo
+        queryClient.invalidateQueries({ queryKey: domainDataQueryKeys.resumoVersions(id) });
+        queryClient.invalidateQueries({ queryKey: [...domainDataQueryKeys.seiDetail(id), "resumo-tecnico"] });
+        toast.success("Análise executada com sucesso!");
+      }
+    } catch (error: any) {
+      console.error(error);
+      toast.error(`Falha ao gerar minuta por IA: ${error?.message || "Erro desconhecido"}`);
+    }
+  };
+
   useEffect(() => {
     if (!sei) return;
-    setMinuta(existingDraft?.minuta ?? resumoData?.minuta ?? data?.minuta ?? "");
-  }, [data?.minuta, existingDraft?.minuta, resumoData?.minuta, sei]);
+    setMinuta(existingDraft?.minuta ?? sei?.minuta ?? resumoData?.minuta ?? data?.minuta ?? "");
+  }, [data?.minuta, existingDraft?.minuta, resumoData?.minuta, sei, sei?.minuta]);
 
   const isAdmin = user?.role === "administrador";
   const isLockedByOther = !!existingDraft && !!user && existingDraft.ownerEmail !== user.email && !isAdmin;
   const isFinalized = existingDraft?.status === "Concluído";
   const readOnly = isLockedByOther || isFinalized;
 
-  // A IA já terminou tudo off-line. Ao abrir o editor, estamos sempre na etapa de revisão humana.
-  // Mas se o resumo técnico ainda está carregando, fica na etapa de jurisprudências
   const etapaAtual = isResumoLoading ? 1 : isFinalized ? 3 : 2;
 
   const juris = useMemo(
     () => data?.jurisprudencias ?? [],
     [data?.jurisprudencias]
   );
+
   const resumoTecnico = resumoData?.resumoTecnico;
   const activeResumoVersion = resumoVersions.find((version) => version.is_active);
   const resumoProcesso = resumoTecnico?.resumo_processo;
@@ -58,60 +136,98 @@ const Minutador = () => {
   const insumoParecer = resumoTecnico?.insumo_parecer;
   const minutaOriginal = resumoData?.minuta ?? data?.minuta ?? sei?.iaSugestao ?? "";
 
+  const documentosIA = useMemo(() => {
+    if (!sei) return [];
+    return (sei.jurisprudenciasSugeridas || []).filter(
+      (item) => typeof item === "string" && (!item.startsWith("j") || item.length > 3)
+    );
+  }, [sei]);
+
   if (isLoading) {
-    return <AppLayout title="Minutador de Resposta" subtitle="Carregando dados do backend..."><div /></AppLayout>;
+    return (
+      <AppLayout title="Carregando..." subtitle="Buscando informações do processo SEI">
+        <div className="space-y-6 p-4">
+          <Skeleton className="h-10 w-28 rounded-md" />
+          <Skeleton className="h-[80px] w-full rounded-xl" />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Skeleton className="h-[450px] lg:col-span-2 rounded-xl" />
+            <Skeleton className="h-[450px] rounded-xl" />
+          </div>
+        </div>
+      </AppLayout>
+    );
   }
 
   if (error || !sei) {
     return (
       <AppLayout title="SEI não encontrado">
-        <Button asChild variant="outline"><Link to="/seis"><ArrowLeft className="h-4 w-4 mr-2" /> Voltar</Link></Button>
+        <div className="p-4 space-y-4">
+          <p className="text-muted-foreground">O processo solicitado não existe ou foi removido do sistema.</p>
+          <Button asChild variant="outline">
+            <Link to="/seis"><ArrowLeft className="h-4 w-4 mr-2" /> Voltar para a lista</Link>
+          </Button>
+        </div>
       </AppLayout>
     );
   }
 
-  // Admin edita em nome do analista original (preserva autoria). Usuário comum salva como dono.
   const effectiveOwnerEmail = isAdmin && existingDraft ? existingDraft.ownerEmail : user?.email ?? "";
   const effectiveOwnerName = isAdmin && existingDraft ? existingDraft.ownerName : user?.name ?? "";
 
-  // Remove quebras de linha do Windows (\r) e espaços inúteis nas pontas
   const normalizar = (txt: string) => (txt || "").replace(/\r/g, "").trim();
 
-  const handleSaveDraft = () => {
+  const handleSaveDraft = async () => {
     if (!user) return;
     if (isLockedByOther) { toast.error("Esta análise pertence a outro usuário."); return; }
 
     const mudouOTexto = normalizar(minuta) !== normalizar(minutaOriginal);
 
-    saveDraft({ 
-      seiId: sei.id, 
-      minuta, 
-      ownerEmail: effectiveOwnerEmail, 
+    saveDraft({
+      seiId: sei.id,
+      minuta,
+      ownerEmail: effectiveOwnerEmail,
       ownerName: effectiveOwnerName,
-      foiAlterado: mudouOTexto 
+      foiAlterado: mudouOTexto
     });
 
-    toast.success(isAdmin && existingDraft && existingDraft.ownerEmail !== user.email
-      ? `Rascunho salvo (edição administrativa em nome de ${existingDraft.ownerName}).`
-      : "Rascunho salvo com sucesso.");
+    try {
+      await updateProcesso.mutateAsync({
+        minuta,
+        foi_alterado: mudouOTexto
+      });
+      toast.success(isAdmin && existingDraft && existingDraft.ownerEmail !== user.email
+        ? `Rascunho salvo (edição administrativa em nome de ${existingDraft.ownerName}).`
+        : "Rascunho salvo com sucesso.");
+    } catch (err: any) {
+      toast.error(`Erro ao salvar no servidor: ${err.message || "Erro desconhecido"}`);
+    }
   };
 
-  const handleFinalize = () => {
+  const handleFinalize = async () => {
     if (!user) return;
     if (isLockedByOther) { toast.error("Esta análise pertence a outro usuário."); return; }
 
     const mudouOTexto = normalizar(minuta) !== normalizar(minutaOriginal);
 
-    saveDraft({ 
-      seiId: sei.id, 
-      minuta, 
-      ownerEmail: effectiveOwnerEmail, 
+    saveDraft({
+      seiId: sei.id,
+      minuta,
+      ownerEmail: effectiveOwnerEmail,
       ownerName: effectiveOwnerName,
-      foiAlterado: mudouOTexto 
+      foiAlterado: mudouOTexto
     });
 
-    finalizeDraft(sei.id, user.name);
-    toast.success("Análise finalizada e marcada como concluída.");
+    try {
+      await updateProcesso.mutateAsync({
+        status: "Concluído",
+        minuta,
+        foi_alterado: mudouOTexto
+      });
+      finalizeDraft(sei.id, user.name);
+      toast.success("Análise finalizada e marcada como concluída.");
+    } catch (err: any) {
+      toast.error(`Erro ao finalizar no servidor: ${err.message || "Erro desconhecido"}`);
+    }
   };
 
   const handleGenerateResumo = async () => {
@@ -130,7 +246,6 @@ const Minutador = () => {
         <Button asChild variant="ghost" size="sm"><Link to="/seis"><ArrowLeft className="h-4 w-4 mr-1" /> Voltar</Link></Button>
       </div>
 
-
       {/* Stepper */}
       <div className="bg-card border border-border rounded-xl shadow-card p-6 mb-6">
         <div className="flex items-center justify-between">
@@ -143,8 +258,8 @@ const Minutador = () => {
                   <div className={cn(
                     "h-9 w-9 rounded-full flex items-center justify-center font-semibold text-sm transition-colors",
                     complete ? "bg-success text-success-foreground" :
-                    active ? "bg-primary text-primary-foreground ring-4 ring-primary/20" :
-                    "bg-secondary text-muted-foreground"
+                      active ? "bg-primary text-primary-foreground ring-4 ring-primary/20" :
+                        "bg-secondary text-muted-foreground"
                   )}>
                     {complete ? <Check className="h-4 w-4" /> : i + 1}
                   </div>
@@ -203,131 +318,136 @@ const Minutador = () => {
                 <div className="mb-3">
                   <div className="flex items-center gap-2 mb-1 justify-between">
                     <h2 className="font-semibold">Resumo técnico preliminar</h2>
-                    <PromptEditorDialog/>
-                  </div>   
-                  
-
-
+                    <PromptEditorDialog />
+                  </div>
                   {activeResumoVersion && (
                     <p className="text-xs text-muted-foreground mt-1">
                       Versão ativa #{activeResumoVersion.version}, gerada em {new Date(activeResumoVersion.generated_at).toLocaleString("pt-BR")} por {activeResumoVersion.generated_by}.
                     </p>
                   )}
                 </div>
-            {isResumoLoading ? (
-              <div className="rounded-lg border border-dashed border-primary/30 bg-background/60 p-4 text-sm text-muted-foreground">
-                Gerando resumo técnico preliminar... aguarde. Os dados do processo já estão disponíveis para consulta.
-              </div>
-            ) : resumoError ? (
-              <p className="text-sm text-destructive">Não foi possível gerar o resumo técnico preliminar. Tente novamente em instantes.</p>
-            ) : resumoTecnico ? (
-              <div className="space-y-5 text-sm">
-                <section>
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-                    {resumoProcesso?.tipo_demanda
-                      ? resumoProcesso.tipo_demanda.charAt(0).toUpperCase() + resumoProcesso.tipo_demanda.slice(1)
-                      : "Resumo do processo"}
-                  </h3>
-                  <dl className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <dt className="text-xs text-muted-foreground">Número</dt>
-                      <dd className="font-mono">{sei.numero}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs text-muted-foreground">Assunto</dt>
-                      <dd>{sei.assunto}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs text-muted-foreground">Partes</dt>
-                      <dd>{sei.partes ?? "—"}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs text-muted-foreground">Status / prioridade</dt>
-                      <dd>{sei.status} · {sei.prioridade}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs text-muted-foreground">Medicamento solicitado</dt>
-                      <dd>{resumoProcesso?.medicamento_solicitado ?? "Não informado"}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs text-muted-foreground">CID informado</dt>
-                      <dd>{resumoProcesso?.cid_informado ?? "Não informado"}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs text-muted-foreground">Diagnóstico informado</dt>
-                      <dd>{resumoProcesso?.diagnostico_informado ?? "Não informado"}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs text-muted-foreground">Confiança da IA</dt>
-                      <dd>{Math.round(sei.iaConfidence * 100)}%</dd>
-                    </div>
-                    <div className="md:col-span-2">
-                      <dt className="text-xs text-muted-foreground">Objetivo da solicitação</dt>
-                      <dd>{resumoProcesso?.objetivo_da_solicitacao ?? sei.resumo ?? "Não informado"}</dd>
-                    </div>
-                  </dl>
-                </section>
-
-                <section>
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Confronto com documentação de suporte</h3>
-                  <div className="space-y-2">
-                    <p>CID validado: {confronto?.cid_validado ? "Sim" : "Não"}</p>
-                    <p>Medicamento contemplado para o CID: {confronto?.medicamento_contemplado_para_o_cid ?? "indeterminado"}</p>
-                    <ul className="list-disc pl-5 space-y-1">
-                      {(confronto?.observacoes ?? []).map((item) => <li key={item}>{item}</li>)}
-                    </ul>
+                {isResumoLoading ? (
+                  <div className="rounded-lg border border-dashed border-primary/30 bg-background/60 p-4 text-sm text-muted-foreground">
+                    Gerando resumo técnico preliminar... aguarde. Os dados do processo já estão disponíveis para consulta.
                   </div>
-                </section>
+                ) : resumoError ? (
+                  <p className="text-sm text-destructive">Não foi possível gerar o resumo técnico preliminar. Tente novamente em instantes.</p>
+                ) : resumoTecnico ? (
+                  <div className="space-y-5 text-sm">
+                    <section>
+                      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                        {resumoProcesso?.tipo_demanda
+                          ? resumoProcesso.tipo_demanda.charAt(0).toUpperCase() + resumoProcesso.tipo_demanda.slice(1)
+                          : "Resumo do processo"}
+                      </h3>
+                      <dl className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <dt className="text-xs text-muted-foreground">Número</dt>
+                          <dd className="font-mono">{sei.numero}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs text-muted-foreground">Assunto</dt>
+                          <dd>{sei.assunto}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs text-muted-foreground">Partes</dt>
+                          <dd>{sei.partes ?? "—"}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs text-muted-foreground">Status / prioridade</dt>
+                          <dd>{sei.status} · {sei.prioridade}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs text-muted-foreground">Medicamento solicitado</dt>
+                          <dd>{resumoProcesso?.medicamento_solicitado ?? "Não informado"}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs text-muted-foreground">CID informado</dt>
+                          <dd>{resumoProcesso?.cid_informado ?? "Não informado"}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs text-muted-foreground">Diagnóstico informado</dt>
+                          <dd>{resumoProcesso?.diagnostico_informado ?? "Não informado"}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs text-muted-foreground">Confiança da IA</dt>
+                          <dd>{Math.round(sei.iaConfidence * 100)}%</dd>
+                        </div>
+                        <div className="md:col-span-2">
+                          <dt className="text-xs text-muted-foreground">Objetivo da solicitação</dt>
+                          <dd>{resumoProcesso?.objetivo_da_solicitacao ?? sei.resumo ?? "Não informado"}</dd>
+                        </div>
+                      </dl>
+                    </section>
 
-                <section>
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Insumo para parecer</h3>
-                  <div className="space-y-2">
-                    <p>{insumoParecer?.conclusao_tecnica_sugerida ?? "Conclusão técnica não informada."}</p>
-                    <p>Necessita revisão humana: {insumoParecer?.necessita_revisao_humana ? "Sim" : "Não"}</p>
-                    <p>Nível de confiança: {insumoParecer?.nivel_confianca ?? "não informado"}</p>
-                    {insumoParecer?.fundamentos && insumoParecer.fundamentos.length > 0 && (
-                      <div>
-                        <div className="text-xs text-muted-foreground">Fundamentos</div>
-                        <ul className="list-disc pl-5 space-y-1">{insumoParecer.fundamentos.map((item) => <li key={item}>{item}</li>)}</ul>
+                    <section>
+                      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Confronto com documentação de suporte</h3>
+                      <div className="space-y-2">
+                        <p>CID validado: {confronto?.cid_validado ? "Sim" : "Não"}</p>
+                        <p>Medicamento contemplado para o CID: {confronto?.medicamento_contemplado_para_o_cid ?? "indeterminado"}</p>
+                        <ul className="list-disc pl-5 space-y-1">
+                          {(confronto?.observacoes ?? []).map((item) => <li key={item}>{item}</li>)}
+                        </ul>
                       </div>
-                    )}
-                    {insumoParecer?.alternativas_orientaveis && insumoParecer.alternativas_orientaveis.length > 0 && (
-                      <div>
-                        <div className="text-xs text-muted-foreground">Alternativas orientáveis</div>
-                        <ul className="list-disc pl-5 space-y-1">{insumoParecer.alternativas_orientaveis.map((item) => <li key={item}>{item}</li>)}</ul>
+                    </section>
+
+                    <section>
+                      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Insumo para parecer</h3>
+                      <div className="space-y-2">
+                        <div className="border border-border bg-background/50 rounded-xl p-4 shadow-sm mb-3">
+                          <ReactMarkdown
+                            components={{
+                              p: ({ node, ...props }) => <p className="mb-4 text-sm leading-relaxed" {...props} />
+                            }}
+                          >
+                            {insumoParecer?.conclusao_tecnica_sugerida ?? "Conclusão técnica não informada."}
+                          </ReactMarkdown>
+                        </div>
+                        <p>Necessita revisão humana: {insumoParecer?.necessita_revisao_humana ? "Sim" : "Não"}</p>
+                        <p>Nível de confiança: {insumoParecer?.nivel_confianca ?? "não informado"}</p>
+                        {insumoParecer?.fundamentos && insumoParecer.fundamentos.length > 0 && (
+                          <div>
+                            <div className="text-xs text-muted-foreground">Fundamentos</div>
+                            <ul className="list-disc pl-5 space-y-1">{insumoParecer.fundamentos.map((item) => <li key={item}>{item}</li>)}</ul>
+                          </div>
+                        )}
+                        {insumoParecer?.alternativas_orientaveis && insumoParecer.alternativas_orientaveis.length > 0 && (
+                          <div>
+                            <div className="text-xs text-muted-foreground">Alternativas orientáveis</div>
+                            <ul className="list-disc pl-5 space-y-1">{insumoParecer.alternativas_orientaveis.map((item) => <li key={item}>{item}</li>)}</ul>
+                          </div>
+                        )}
+                        {insumoParecer?.pendencias_documentais && insumoParecer.pendencias_documentais.length > 0 && (
+                          <div>
+                            <div className="text-xs text-muted-foreground">Pendências documentais</div>
+                            <ul className="list-disc pl-5 space-y-1">{insumoParecer.pendencias_documentais.map((item) => <li key={item}>{item}</li>)}</ul>
+                          </div>
+                        )}
                       </div>
-                    )}
-                    {insumoParecer?.pendencias_documentais && insumoParecer.pendencias_documentais.length > 0 && (
-                      <div>
-                        <div className="text-xs text-muted-foreground">Pendências documentais</div>
-                        <ul className="list-disc pl-5 space-y-1">{insumoParecer.pendencias_documentais.map((item) => <li key={item}>{item}</li>)}</ul>
-                      </div>
-                    )}
+                    </section>
+
+                    <section>
+                      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Fontes consultadas</h3>
+                      <ul className="list-disc pl-5 space-y-1">
+                        {(resumoTecnico.fontes_consultadas ?? []).map((item) => <li key={item}>{item}</li>)}
+                      </ul>
+                    </section>
+
+                    <section>
+                      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Documento PDF</h3>
+                      {sei.documentoPdf ? (
+                        <div className="space-y-1 font-mono text-xs break-all">
+                          <div>{sei.documentoPdf.filename}</div>
+                          <div>{sei.documentoPdf.url}</div>
+                        </div>
+                      ) : (
+                        <p>Nenhum documento PDF informado.</p>
+                      )}
+                    </section>
                   </div>
-                </section>
-
-                <section>
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Fontes consultadas</h3>
-                  <ul className="list-disc pl-5 space-y-1">
-                    {(resumoTecnico.fontes_consultadas ?? []).map((item) => <li key={item}>{item}</li>)}
-                  </ul>
-                </section>
-
-                <section>
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Documento PDF</h3>
-                  {sei.documentoPdf ? (
-                    <div className="space-y-1 font-mono text-xs break-all">
-                      <div>{sei.documentoPdf.filename}</div>
-                      <div>{sei.documentoPdf.url}</div>
-                    </div>
-                  ) : (
-                    <p>Nenhum documento PDF informado.</p>
-                  )}
-                </section>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">Nenhum resumo técnico estruturado retornado pela API.</p>
-            )}
+                ) : (
+                  <p className="text-sm text-muted-foreground">Nenhum resumo técnico estruturado retornado pela API.</p>
+                )}
                 <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-4">
                   <Button size="sm" variant="outline" onClick={handleGenerateResumo} disabled={generateResumo.isPending || isResumoLoading}>
                     {generateResumo.isPending || isResumoLoading ? (
@@ -371,168 +491,250 @@ const Minutador = () => {
                   <p className="text-xs text-muted-foreground">Aguarde o carregamento completo das jurisprudências e evidências.</p>
                 </div>
               ) : (
-              <div className="rounded-xl border border-border bg-secondary/20 p-4 space-y-4">
-                <div className="mb-3">
-                  <h2 className="font-semibold">Jurisprudências sugeridas</h2>
-                  <p className="text-xs text-muted-foreground mt-1">Referências de jurisprudência associadas ao processo.</p>
-                </div>
+                <div className="rounded-xl border border-border bg-secondary/20 p-4 space-y-4">
+                  <div className="mb-3">
+                    <h2 className="font-semibold">Jurisprudências sugeridas</h2>
+                    <p className="text-xs text-muted-foreground mt-1">Referências de jurisprudência associadas ao processo.</p>
+                  </div>
 
-                <div className="space-y-3">
-                  {juris.map((j) => (
-                    <article key={j.id} className="border border-border rounded-lg p-4 hover:bg-secondary/40 transition-colors">
-                      <div className="text-xs font-semibold text-primary">{j.tribunal}</div>
-                      <div className="font-mono text-[11px] text-muted-foreground mb-1">{j.numero}</div>
-                      <div className="text-sm font-medium mb-1">{j.tema}</div>
-                      <p className="text-xs text-muted-foreground">{j.resumo}</p>
-                    </article>
-                  ))}
-                  {juris.length === 0 && (
-                    <p className="text-sm text-muted-foreground">Nenhuma jurisprudência associada a este processo.</p>
-                  )}
+                  <div className="space-y-3">
+                    {juris.map((j) => (
+                      <article key={j.id} className="border border-border rounded-lg p-4 hover:bg-secondary/40 transition-colors">
+                        <div className="text-xs font-semibold text-primary">{j.tribunal}</div>
+                        <div className="font-mono text-[11px] text-muted-foreground mb-1">{j.numero}</div>
+                        <div className="text-sm font-medium mb-1">{j.tema}</div>
+                        <p className="text-xs text-muted-foreground">{j.resumo}</p>
+                      </article>
+                    ))}
+                    {juris.length === 0 && (
+                      <p className="text-sm text-muted-foreground">Nenhuma jurisprudência associada a este processo.</p>
+                    )}
+                  </div>
                 </div>
-              </div>
               )}
             </TabsContent>
 
             <TabsContent value="minuta" className="mt-0">
-          {isResumoLoading ? (
-            <div className="rounded-lg border border-primary/30 bg-primary/5 p-6 text-center space-y-3">
-              <div className="flex items-center justify-center gap-2">
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                <p className="font-semibold text-primary">Carregando evidências...</p>
-              </div>
-              <p className="text-xs text-muted-foreground">Aguarde o carregamento completo das evidências e jurisprudências para começar a editar a minuta.</p>
-            </div>
-          ) : (
-            <>
-              <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="font-semibold">
-                {isFinalized ? "Minuta finalizada" : readOnly ? "Minuta (somente leitura)" : "Minuta – pronta para edição"}
-              </h2>
-              {existingDraft && (
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Última atualização por {existingDraft.ownerName} em {new Date(existingDraft.updatedAt).toLocaleString("pt-BR")}
-                </p>
-              )}
-            </div>
-            {!readOnly && (
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={handleSaveDraft}>
-                  <Save className="h-4 w-4 mr-2" /> Salvar rascunho
-                </Button>
-                <Button size="sm" onClick={handleFinalize}>
-                  <CheckCircle2 className="h-4 w-4 mr-2" /> Finalizar análise
-                </Button>
-              </div>
-            )}
-          </div>
+              {isResumoLoading ? (
+                <div className="rounded-lg border border-primary/30 bg-primary/5 p-6 text-center space-y-3">
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    <p className="font-semibold text-primary">Carregando evidências...</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Aguarde o carregamento completo das evidências e jurisprudências para começar a editar a minuta.</p>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h2 className="font-semibold">
+                        {isFinalized ? "Minuta finalizada" : readOnly ? "Minuta (somente leitura)" : "Minuta – pronta para edição"}
+                      </h2>
+                      {existingDraft && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Última atualização por {existingDraft.ownerName} em {new Date(existingDraft.updatedAt).toLocaleString("pt-BR")}
+                        </p>
+                      )}
+                    </div>
+                    {!readOnly && (
+                      <div className="flex gap-2 items-center">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleAnalisarIA}
+                          disabled={isAnalyzing}
+                          className="border-primary/40 text-primary hover:bg-primary/5 hover:text-primary transition-all"
+                        >
+                          <Sparkles className={cn("h-4 w-4 mr-2 text-primary", isAnalyzing && "animate-spin")} />
+                          Analisar com Gemini IA
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={handleSaveDraft} disabled={isAnalyzing}>
+                          <Save className="h-4 w-4 mr-2" /> Salvar rascunho
+                        </Button>
+                        <Button size="sm" onClick={handleFinalize} disabled={isAnalyzing}>
+                          <CheckCircle2 className="h-4 w-4 mr-2" /> Finalizar análise
+                        </Button>
+                      </div>
+                    )}
+                  </div>
 
-          <RichTextEditor
-            value={minuta}
-            onChange={setMinuta}
-            readOnly={readOnly}
-            minHeight="420px"
-            placeholder="Digite ou edite a minuta aqui..."
-          />
-            </>
-          )}
+                  {isAnalyzing && (
+                    <div className="mb-4 space-y-2 p-3 bg-primary/5 rounded-lg border border-primary/20 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <div className="flex justify-between items-center text-xs font-medium text-primary">
+                        <span className="flex items-center gap-1.5">
+                          <Bot className="h-3.5 w-3.5 animate-bounce" />
+                          O Gemini está analisando os PDFs do processo e as normas técnicas...
+                        </span>
+                      </div>
+                      <div className="h-2 w-full bg-primary/10 rounded-full overflow-hidden">
+                        <div className="h-full bg-primary w-full animate-pulse rounded-full" />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Informações do Arquivo PDF do Processo */}
+                  {sei.arquivoPdf && (
+                    <div className="mb-4 p-4 rounded-xl border border-border bg-secondary/15 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-primary/10 rounded-lg text-primary mt-0.5 shrink-0">
+                          <FileText className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-xs text-muted-foreground font-medium block">Documento Original do Processo</span>
+                          <span className="text-sm font-semibold text-foreground break-all" title={sei.arquivoPdf}>
+                            {cleanFilename(sei.arquivoPdf)}
+                          </span>
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleDownloadPDF}
+                        disabled={isDownloading}
+                        className="shrink-0 bg-background hover:bg-secondary border-border shadow-sm flex items-center gap-2"
+                      >
+                        <Download className={cn("h-4 w-4", isDownloading && "animate-pulse")} />
+                        {isDownloading ? "Baixando..." : "Baixar PDF Original"}
+                      </Button>
+                    </div>
+                  )}
+
+                  <RichTextEditor
+                    value={minuta}
+                    onChange={setMinuta}
+                    readOnly={readOnly || isAnalyzing}
+                    minHeight="420px"
+                    placeholder="Digite ou edite a minuta aqui..."
+                  />
+                </>
+              )}
             </TabsContent>
           </Tabs>
         </section>
 
-        <aside className="bg-card border border-border rounded-xl shadow-card p-5 h-fit">
-          <div className="flex items-center gap-2 mb-3">
-            <FileText className="h-4 w-4 text-primary" />
-            <h3 className="font-semibold text-sm">Evidências encontradas</h3>
-          </div>
-          <p className="text-xs text-muted-foreground mb-4">
-            Informações-chave para gerar a minuta.
-          </p>
+        <aside className="bg-card border border-border rounded-xl shadow-card p-5 h-fit space-y-6">
+          {/* Evidências clínicas */}
+          {resumoTecnico && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <FileText className="h-4 w-4 text-primary" />
+                <h3 className="font-semibold text-sm">Evidências encontradas</h3>
+              </div>
+              <p className="text-xs text-muted-foreground mb-4">
+                Informações-chave extraídas dos relatórios médicos.
+              </p>
 
-          {isResumoLoading ? (
-            <div className="rounded-lg border border-dashed border-primary/30 bg-background/60 p-4 text-sm text-muted-foreground flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Carregando evidências...
+              <div className="space-y-4">
+                {resumoTecnico?.evidencias_clinicas_do_processo && resumoTecnico.evidencias_clinicas_do_processo.length > 0 && (
+                  <div>
+                    <div className="text-xs font-semibold mb-2 text-primary">Evidências Clínicas</div>
+                    <ul className="space-y-2">
+                      {resumoTecnico.evidencias_clinicas_do_processo.map((item, idx) => (
+                        <li key={idx} className="border border-border/50 rounded-lg p-2 bg-secondary/10 text-xs hover:bg-secondary/20 transition-colors">
+                          <p className="line-clamp-3">{item}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {confronto?.observacoes && confronto.observacoes.length > 0 && (
+                  <div>
+                    <div className="text-xs font-semibold mb-2 text-primary">Observações</div>
+                    <ul className="space-y-2">
+                      {confronto.observacoes.map((item, idx) => (
+                        <li key={idx} className="border border-border/50 rounded-lg p-2 bg-secondary/10 text-xs hover:bg-secondary/20 transition-colors">
+                          <p className="line-clamp-3">{item}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {insumoParecer?.fundamentos && insumoParecer.fundamentos.length > 0 && (
+                  <div>
+                    <div className="text-xs font-semibold mb-2 text-primary">Fundamentos</div>
+                    <ul className="space-y-2">
+                      {insumoParecer.fundamentos.map((item, idx) => (
+                        <li key={idx} className="border border-border/50 rounded-lg p-2 bg-secondary/10 text-xs hover:bg-secondary/20 transition-colors">
+                          <p className="line-clamp-3">{item}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {insumoParecer?.alternativas_orientaveis && insumoParecer.alternativas_orientaveis.length > 0 && (
+                  <div>
+                    <div className="text-xs font-semibold mb-2 text-primary">Alternativas</div>
+                    <ul className="space-y-2">
+                      {insumoParecer.alternativas_orientaveis.map((item, idx) => (
+                        <li key={idx} className="border border-border/50 rounded-lg p-2 bg-secondary/10 text-xs hover:bg-secondary/20 transition-colors">
+                          <p className="line-clamp-3">{item}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {insumoParecer?.pendencias_documentais && insumoParecer.pendencias_documentais.length > 0 && (
+                  <div>
+                    <div className="text-xs font-semibold mb-2 text-destructive">Pendências</div>
+                    <ul className="space-y-2">
+                      {insumoParecer.pendencias_documentais.map((item, idx) => (
+                        <li key={idx} className="border border-destructive/30 rounded-lg p-2 bg-destructive/10 text-xs hover:bg-destructive/20 transition-colors">
+                          <p className="line-clamp-3">{item}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
             </div>
-          ) : !resumoTecnico ? (
-            <p className="text-xs text-muted-foreground">Nenhuma evidência disponível no momento.</p>
-          ) : (
-          <div className="space-y-4">
-            {/* Evidências clínicas */}
-            {resumoTecnico?.evidencias_clinicas_do_processo && resumoTecnico.evidencias_clinicas_do_processo.length > 0 && (
-              <div>
-                <div className="text-xs font-semibold mb-2 text-primary">Evidências Clínicas</div>
-                <ul className="space-y-2">
-                  {resumoTecnico.evidencias_clinicas_do_processo.map((item, idx) => (
-                    <li key={idx} className="border border-border/50 rounded-lg p-2 bg-secondary/10 text-xs hover:bg-secondary/20 transition-colors">
-                      <p className="line-clamp-3">{item}</p>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+          )}
 
-            {/* Observações do confronto */}
-            {confronto?.observacoes && confronto.observacoes.length > 0 && (
-              <div>
-                <div className="text-xs font-semibold mb-2 text-primary">Observações</div>
-                <ul className="space-y-2">
-                  {confronto.observacoes.map((item, idx) => (
-                    <li key={idx} className="border border-border/50 rounded-lg p-2 bg-secondary/10 text-xs hover:bg-secondary/20 transition-colors">
-                      <p className="line-clamp-3">{item}</p>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
 
-            {/* Fundamentos */}
-            {insumoParecer?.fundamentos && insumoParecer.fundamentos.length > 0 && (
-              <div>
-                <div className="text-xs font-semibold mb-2 text-primary">Fundamentos</div>
-                <ul className="space-y-2">
-                  {insumoParecer.fundamentos.map((item, idx) => (
-                    <li key={idx} className="border border-border/50 rounded-lg p-2 bg-secondary/10 text-xs hover:bg-secondary/20 transition-colors">
-                      <p className="line-clamp-3">{item}</p>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
 
-            {/* Alternativas orientáveis */}
-            {insumoParecer?.alternativas_orientaveis && insumoParecer.alternativas_orientaveis.length > 0 && (
-              <div>
-                <div className="text-xs font-semibold mb-2 text-primary">Alternativas</div>
-                <ul className="space-y-2">
-                  {insumoParecer.alternativas_orientaveis.map((item, idx) => (
-                    <li key={idx} className="border border-border/50 rounded-lg p-2 bg-secondary/10 text-xs hover:bg-secondary/20 transition-colors">
-                      <p className="line-clamp-3">{item}</p>
-                    </li>
-                  ))}
-                </ul>
+          {/* Base de Conhecimento IA */}
+          {documentosIA.length > 0 && (
+            <div className="border-t border-border pt-4">
+              <div className="flex items-center gap-2 mb-3">
+                <FileText className="h-4 w-4 text-primary" />
+                <h3 className="font-semibold text-sm">Base de Conhecimento IA</h3>
               </div>
-            )}
-
-            {/* Pendências documentais */}
-            {insumoParecer?.pendencias_documentais && insumoParecer.pendencias_documentais.length > 0 && (
-              <div>
-                <div className="text-xs font-semibold mb-2 text-destructive">Pendências</div>
-                <ul className="space-y-2">
-                  {insumoParecer.pendencias_documentais.map((item, idx) => (
-                    <li key={idx} className="border border-destructive/30 rounded-lg p-2 bg-destructive/10 text-xs hover:bg-destructive/20 transition-colors">
-                      <p className="line-clamp-3">{item}</p>
+              <p className="text-xs text-muted-foreground mb-4">
+                Documentos e diretrizes técnicas utilizados para fundamentar esta minuta.
+              </p>
+              <ul className="space-y-2">
+                {documentosIA.map((doc, idx) => {
+                  const filename = doc.split("/").pop() || doc;
+                  const isDownloadingThis = downloadingKB === doc;
+                  return (
+                    <li key={idx} className="border border-border rounded-lg p-2.5 bg-primary/5 hover:bg-primary/10 transition-all flex items-center justify-between gap-3">
+                      <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                        <Bot className="h-4 w-4 text-primary/70 shrink-0 mt-0.5" />
+                        <span
+                          className="text-xs font-medium text-foreground truncate block cursor-help"
+                          title={doc}
+                        >
+                          {filename}
+                        </span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDownloadKB(doc)}
+                        disabled={isDownloadingThis}
+                        className="h-7 w-7 shrink-0 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
+                        title={`Baixar ${filename}`}
+                      >
+                        <Download className={cn("h-3.5 w-3.5", isDownloadingThis && "animate-pulse")} />
+                      </Button>
                     </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {!resumoTecnico && (
-              <p className="text-xs text-muted-foreground">Nenhuma evidência disponível no momento.</p>
-            )}
-          </div>
+                  );
+                })}
+              </ul>
+            </div>
           )}
         </aside>
       </div>
