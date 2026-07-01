@@ -33,11 +33,13 @@ export const RichTextEditor = ({
   const isInitialized = useRef(false);
 
   useEffect(() => {
-    if (editorRef.current && !isInitialized.current) {
-      editorRef.current.innerHTML = value || "";
-      isInitialized.current = true;
+    if (editorRef.current) {
+      const isFocused = document.activeElement === editorRef.current;
+      if (!isFocused && editorRef.current.innerHTML !== value) {
+        editorRef.current.innerHTML = value || "";
+      }
     }
-  }, []);
+  }, [value]);
 
   useEffect(() => {
     if (editorRef.current) {

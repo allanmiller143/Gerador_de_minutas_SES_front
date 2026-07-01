@@ -1,13 +1,15 @@
-import { useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useMemo, useState, useEffect } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { getEffectiveSei, type Priority } from "@/data/mock";
+import { getEffectiveSei, type Priority, jurisprudencias } from "@/data/mock";
 import { useSeiDetail } from "@/services/domainData";
 import { PriorityBadge, StatusBadge, OriginBadge } from "@/components/shared/Badges";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, FileEdit, Flag, Scale, Bot, Eye, Sparkles } from "lucide-react";
 import { useDrafts } from "@/context/DraftsContext";
 import { useAuth } from "@/context/AuthContext";
+import { useProcessos } from "@/hooks/useProcessos";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
@@ -24,7 +26,14 @@ const SeiDetail = () => {
   const sei = base ? getEffectiveSei(base, drafts, priorities) : undefined;
 
   const [priorityOpen, setPriorityOpen] = useState(false);
-  const [newPriority, setNewPriority] = useState<Priority>(sei?.prioridade ?? "Média");
+  const [newPriority, setNewPriority] = useState<Priority>("Média");
+
+  // Sincroniza a prioridade atual assim que o processo carregar
+  useEffect(() => {
+    if (sei) {
+      setNewPriority(sei.prioridade);
+    }
+  }, [sei]);
 
   const draft = sei ? drafts[sei.id] : undefined;
   const events = useMemo(() => (sei ? getEvents(sei.id) : []), [sei, getEvents]);
@@ -37,8 +46,32 @@ const SeiDetail = () => {
 
   if (error || !sei || !base) {
     return (
-      <AppLayout title="SEI não encontrado">
-        <Button asChild variant="outline"><Link to="/seis"><ArrowLeft className="h-4 w-4 mr-2" /> Voltar</Link></Button>
+      <AppLayout title="Carregando..." subtitle="Buscando detalhes do processo SEI">
+        <div className="space-y-6 p-4">
+          <div className="flex gap-4">
+            <Skeleton className="h-10 w-24 rounded-md" />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <Skeleton className="h-[250px] rounded-xl" />
+              <Skeleton className="h-[150px] rounded-xl" />
+            </div>
+            <Skeleton className="h-[450px] rounded-xl" />
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!sei) {
+    return (
+      <AppLayout title="Processo não encontrado">
+        <div className="p-4 space-y-4">
+          <p className="text-muted-foreground">O processo solicitado não existe ou foi removido do sistema.</p>
+          <Button asChild variant="outline">
+            <Link to="/seis"><ArrowLeft className="h-4 w-4 mr-2" /> Voltar para a lista</Link>
+          </Button>
+        </div>
       </AppLayout>
     );
   }

@@ -101,6 +101,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!data?.access_token) {
       throw new ApiError("Resposta inválida do servidor", 500, data);
     }
+    
+    // Limpa todo o local storage para evitar que itens excluídos ou modificados persistam
+    localStorage.clear();
+    
     tokenStore.set(data.access_token, data.refresh_token);
     const me = await fetchMe();
     if (!me) throw new ApiError("Não foi possível carregar perfil do usuário", 500, null);
