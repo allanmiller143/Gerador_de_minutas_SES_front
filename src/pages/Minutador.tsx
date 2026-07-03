@@ -303,11 +303,8 @@ const Minutador = () => {
           )}
 
           <Tabs defaultValue="resumo" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="resumo">Resumo técnico</TabsTrigger>
-              <TabsTrigger value="juris" disabled={isResumoLoading} className={isResumoLoading ? "opacity-50 cursor-not-allowed" : ""}>
-                {isResumoLoading ? "Jurisprudências (carregando...)" : "Jurisprudências"}
-              </TabsTrigger>
               <TabsTrigger value="minuta" disabled={isResumoLoading} className={isResumoLoading ? "opacity-50 cursor-not-allowed" : ""}>
                 {isResumoLoading ? "Minuta (carregando...)" : "Minuta"}
               </TabsTrigger>
@@ -479,39 +476,6 @@ const Minutador = () => {
                   </div>
                 )}
               </div>
-            </TabsContent>
-
-            <TabsContent value="juris" className="mt-0">
-              {isResumoLoading ? (
-                <div className="rounded-lg border border-primary/30 bg-primary/5 p-6 text-center space-y-3">
-                  <div className="flex items-center justify-center gap-2">
-                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                    <p className="font-semibold text-primary">Carregando jurisprudências...</p>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Aguarde o carregamento completo das jurisprudências e evidências.</p>
-                </div>
-              ) : (
-                <div className="rounded-xl border border-border bg-secondary/20 p-4 space-y-4">
-                  <div className="mb-3">
-                    <h2 className="font-semibold">Jurisprudências sugeridas</h2>
-                    <p className="text-xs text-muted-foreground mt-1">Referências de jurisprudência associadas ao processo.</p>
-                  </div>
-
-                  <div className="space-y-3">
-                    {juris.map((j) => (
-                      <article key={j.id} className="border border-border rounded-lg p-4 hover:bg-secondary/40 transition-colors">
-                        <div className="text-xs font-semibold text-primary">{j.tribunal}</div>
-                        <div className="font-mono text-[11px] text-muted-foreground mb-1">{j.numero}</div>
-                        <div className="text-sm font-medium mb-1">{j.tema}</div>
-                        <p className="text-xs text-muted-foreground">{j.resumo}</p>
-                      </article>
-                    ))}
-                    {juris.length === 0 && (
-                      <p className="text-sm text-muted-foreground">Nenhuma jurisprudência associada a este processo.</p>
-                    )}
-                  </div>
-                </div>
-              )}
             </TabsContent>
 
             <TabsContent value="minuta" className="mt-0">
