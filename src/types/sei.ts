@@ -18,6 +18,7 @@ export interface ProcessoSEI {
   dataPreAnalise: string;               //Data que foi pré-analisado pela IA
   iaSugestao: string;                   //O texto sugerida pela IA
   minuta?: string;                      //O texto da minuta persistido no banco
+  arquivoPdf?: string;                  //Caminho do arquivo PDF no GCS ou local
   jurisprudenciasSugeridas: any[];      //Lista de jurisprudências 
   isEditadoLocalmente?: boolean;        //Indica se foi editado.
 }

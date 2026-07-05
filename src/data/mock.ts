@@ -23,6 +23,7 @@ export interface Sei {
   iaConfidence: number;          // 0..1 – confiança da IA
   iaSugestao: string;            // minuta sugerida pela IA (resumo)
   minuta?: string;               // minuta editada e persistida no banco
+  arquivoPdf?: string;           // caminho do arquivo PDF no GCS ou local
   jurisprudenciasSugeridas: string[]; // ids
   documentoPdf?: {
     filename: string;
