@@ -10,6 +10,8 @@ export interface ProcessoSEI {
   numero: string;                       //Número de registro do SEI
   assunto: string;                      //Assunto do processo administrativo
   status: StatusProcesso;               //Estado atual (Pré-análise, Em revisão, Concluído)
+  status_processamento?: string;        //Status da fila de análise em background ("Processando", "Concluído", "Falhou")
+  tempo_analise?: number;               //Tempo em segundos decorrido para concluir a análise de IA
   dataRecebimento: string;              //Data de entrada no sistema
   prioridade: PrioridadeProcesso;       //Grau de urgência 
   iaConfidence: number;                 //Nível de confiança da IA (valor decimal de 0 a 1)

@@ -22,8 +22,12 @@ export function UploadDraftModal({ isOpen, onClose }: { isOpen: boolean; onClose
       const selectedFile = e.target.files[0];
       setFile(selectedFile);
       
-      // Auto-fill SEI number from filename if empty
-      if (!numero) {
+      // Try to parse SEI number from filename in format: SEI_2300000034.002595_2026_66.pdf
+      const match = selectedFile.name.match(/SEI_(\d{10})\.(\d{6})_(\d{4})_(\d{2})/i);
+      if (match) {
+        setNumero(`${match[1]}.${match[2]}/${match[3]}-${match[4]}`);
+      } else if (!numero) {
+        // Fallback: auto-fill with filename without extension if empty
         const nameWithoutExt = selectedFile.name.replace(/\.[^/.]+$/, "");
         setNumero(nameWithoutExt);
       }

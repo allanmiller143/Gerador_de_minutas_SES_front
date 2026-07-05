@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MetricCard } from "@/components/shared/MetricCard";
 import { PriorityBadge, StatusBadge, OriginBadge } from "@/components/shared/Badges";
-import { Bot, UserCheck, Send, FileStack, ArrowRight, Eye, Sparkles, FileUp } from "lucide-react";
+import { Bot, UserCheck, Send, FileStack, ArrowRight, Eye, Sparkles, FileUp, Loader2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useDashboard } from "@/hooks/useDashboard";
@@ -95,18 +95,42 @@ const Dashboard = () => {
                       <OriginBadge origin="ia" />
                     </div>
                   </td>
-                  <td className="px-5 py-3 text-muted-foreground">{s.dataRecebimento}</td>
-                  <td className="px-5 py-3"><PriorityBadge value={s.prioridade} /></td>
-                  <td className="px-5 py-3 w-40">
-                    <div className="flex items-center gap-2">
-                      <Progress value={s.iaConfidence * 100} className="h-1.5 flex-1" />
-                      <span className="text-xs text-muted-foreground w-9 text-right">{Math.round(s.iaConfidence * 100)}%</span>
+                  <td className="px-5 py-3 text-muted-foreground">
+                    <div className="flex flex-col">
+                      <span>{s.dataRecebimento}</span>
+                      {s.tempo_analise !== undefined && s.tempo_analise !== null && (
+                        <span className="text-[11px] text-muted-foreground/80 mt-0.5 flex items-center gap-1" title={`Tempo de análise da IA: ${s.tempo_analise}s`}>
+                          <Clock className="h-3 w-3 shrink-0" /> {s.tempo_analise < 60 ? `${s.tempo_analise}s` : `${Math.floor(s.tempo_analise / 60)}m ${s.tempo_analise % 60}s`}
+                        </span>
+                      )}
                     </div>
                   </td>
+                  <td className="px-5 py-3"><PriorityBadge value={s.prioridade} /></td>
+                  <td className="px-5 py-3 w-40">
+                    {s.status_processamento === "Processando" ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                        <span className="text-xs text-muted-foreground animate-pulse">Analisando...</span>
+                      </div>
+                    ) : s.status_processamento === "Falhou" ? (
+                      <span className="text-xs font-semibold text-destructive">Falha na análise</span>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Progress value={s.iaConfidence * 100} className="h-1.5 flex-1" />
+                        <span className="text-xs text-muted-foreground w-9 text-right">{Math.round(s.iaConfidence * 100)}%</span>
+                      </div>
+                    )}
+                  </td>
                   <td className="px-5 py-3 text-right">
-                    <Button asChild size="sm">
-                      <Link to={`/minutador/${s.id}`}>Revisar</Link>
-                    </Button>
+                    {s.status_processamento === "Processando" ? (
+                      <Button size="sm" disabled className="cursor-not-allowed">
+                        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Analisando
+                      </Button>
+                    ) : (
+                      <Button asChild size="sm">
+                        <Link to={`/minutador/${s.id}`}>Revisar</Link>
+                      </Button>
+                    )}
                   </td>
                 </tr>
               ))}

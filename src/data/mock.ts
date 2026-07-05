@@ -17,6 +17,8 @@ export interface Sei {
   dataRevisao?: string;          // quando o humano revisou
   prioridade: Priority;
   status: SeiStatus;
+  status_processamento?: string;
+  tempo_analise?: number;
   analista?: string;             // humano responsável pela revisão
   partes?: string;
   resumo?: string;

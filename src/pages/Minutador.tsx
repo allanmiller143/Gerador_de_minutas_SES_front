@@ -25,12 +25,20 @@ const etapas = ["Pré-análise", "Jurisprudências", "Minuta gerada", "Revisão 
 const Minutador = () => {
   const { id } = useParams();
   const queryClient = useQueryClient();
-  const { data, isLoading, error } = useSeiDetail(id);
+  const { data, isLoading, error } = useSeiDetail(id, {
+    refetchInterval: (query: any) => {
+      return query.state.data?.sei?.status_processamento === "Processando" ? 3000 : false;
+    }
+  });
   const {
     data: resumoData,
     isLoading: isResumoLoading,
     error: resumoError,
-  } = useSeiResumoTecnico(id);
+  } = useSeiResumoTecnico(id, {
+    refetchInterval: (query: any) => {
+      return query.state.data?.sei?.status_processamento === "Processando" ? 3000 : false;
+    }
+  });
   const { data: resumoVersions = [] } = useResumoVersions(id);
   const generateResumo = useGenerateResumo(id);
   const restoreResumo = useRestoreResumo(id);
@@ -101,10 +109,9 @@ const Minutador = () => {
       const updatedSei = await analisarProcesso(Number(sei.id));
 
       if (updatedSei) {
-        // Invalidate cache for new versions & resumo
-        queryClient.invalidateQueries({ queryKey: domainDataQueryKeys.resumoVersions(id) });
-        queryClient.invalidateQueries({ queryKey: [...domainDataQueryKeys.seiDetail(id), "resumo-tecnico"] });
-        toast.success("Análise executada com sucesso!");
+        // Invalidate all queries related to this SEI to update details and state immediately
+        queryClient.invalidateQueries({ queryKey: domainDataQueryKeys.seiDetail(id) });
+        toast.success("Análise enfileirada com sucesso! O processamento está sendo executado em background.");
       }
     } catch (error: any) {
       console.error(error);
@@ -120,7 +127,7 @@ const Minutador = () => {
   const isAdmin = user?.role === "administrador";
   const isLockedByOther = !!existingDraft && !!user && existingDraft.ownerEmail !== user.email && !isAdmin;
   const isFinalized = existingDraft?.status === "Concluído";
-  const readOnly = isLockedByOther || isFinalized;
+  const readOnly = isLockedByOther || isFinalized || sei?.status_processamento === "Processando";
 
   const etapaAtual = isResumoLoading ? 1 : isFinalized ? 3 : 2;
 
@@ -163,13 +170,15 @@ const Minutador = () => {
       <AppLayout title="SEI não encontrado">
         <div className="p-4 space-y-4">
           <p className="text-muted-foreground">O processo solicitado não existe ou foi removido do sistema.</p>
-          <Button asChild variant="outline">
-            <Link to="/seis"><ArrowLeft className="h-4 w-4 mr-2" /> Voltar para a lista</Link>
+          <Button asChild>
+            <Link to="/">Voltar para o Dashboard</Link>
           </Button>
         </div>
       </AppLayout>
     );
   }
+
+
 
   const effectiveOwnerEmail = isAdmin && existingDraft ? existingDraft.ownerEmail : user?.email ?? "";
   const effectiveOwnerName = isAdmin && existingDraft ? existingDraft.ownerName : user?.name ?? "";
@@ -245,7 +254,23 @@ const Minutador = () => {
       <div className="mb-4">
         <Button asChild variant="ghost" size="sm"><Link to="/seis"><ArrowLeft className="h-4 w-4 mr-1" /> Voltar</Link></Button>
       </div>
+      {sei.status_processamento === "Processando" && (
+        <div className="mb-6 p-4 border border-blue-200 bg-blue-50/50 dark:bg-blue-950/20 dark:border-blue-900 rounded-xl flex items-center gap-3 text-blue-800 dark:text-blue-200 animate-pulse">
+          <Loader2 className="h-5 w-5 animate-spin text-blue-600 dark:text-blue-400 shrink-0" />
+          <div className="text-sm">
+            <span className="font-semibold">Análise de IA em andamento no background:</span> A minuta e o resumo técnico estão sendo gerados. As edições e ações estão travadas temporariamente.
+          </div>
+        </div>
+      )}
 
+      {sei.status_processamento === "Falhou" && (
+        <div className="mb-6 p-4 border border-destructive/20 bg-destructive/5 rounded-xl flex items-center gap-3 text-destructive font-medium">
+          <AlertTriangle className="h-5 w-5 shrink-0" />
+          <div className="text-sm">
+            <span className="font-semibold">Falha na análise em background:</span> Ocorreu um erro ao gerar a minuta ou o resumo técnico. Você pode tentar analisar com Gemini novamente.
+          </div>
+        </div>
+      )}
       {/* Stepper */}
       <div className="bg-card border border-border rounded-xl shadow-card p-6 mb-6">
         <div className="flex items-center justify-between">

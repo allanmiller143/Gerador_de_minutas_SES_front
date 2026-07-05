@@ -132,19 +132,21 @@ export function useJurisprudencias() {
   });
 }
 
-export function useSeiDetail(id?: string) {
+export function useSeiDetail(id?: string, options?: any) {
   return useQuery({
     queryKey: domainDataQueryKeys.seiDetail(id),
     enabled: !!id,
     queryFn: async () => api<SeiDetailResponse>(`/api/seis/${id}`),
+    ...options,
   });
 }
 
-export function useSeiResumoTecnico(id?: string) {
+export function useSeiResumoTecnico(id?: string, options?: any) {
   return useQuery({
     queryKey: [...domainDataQueryKeys.seiDetail(id), "resumo-tecnico"] as const,
     enabled: !!id,
     queryFn: async () => api<SeiResumoTecnicoResponse>(`/api/seis/${id}/resumo-tecnico`),
+    ...options,
   });
 }
 

@@ -6,7 +6,7 @@ import { type SeiStatus } from "@/data/mock";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search } from "lucide-react";
+import { Search, Loader2 } from "lucide-react";
 import { useProcessos } from "@/hooks/useProcessos";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -81,11 +81,17 @@ const SeisList = () => {
                     <td className="px-5 py-3 text-right space-x-2">
                       <Button asChild size="sm" variant="ghost"><Link to={`/seis/${s.id}`}>Detalhes</Link></Button>
                       {s.status !== "Concluído" && (
-                        <Button asChild size="sm">
-                          <Link to={`/minutador/${s.id}`}>
-                            {s.status === "Em revisão" ? "Continuar" : "Analisar"}
-                          </Link>
-                        </Button>
+                        s.status_processamento === "Processando" ? (
+                          <Button size="sm" disabled className="cursor-not-allowed">
+                            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Analisando
+                          </Button>
+                        ) : (
+                          <Button asChild size="sm">
+                            <Link to={`/minutador/${s.id}`}>
+                              {s.status === "Em revisão" ? "Continuar" : "Analisar"}
+                            </Link>
+                          </Button>
+                        )
                       )}
                     </td>
                   </tr>
