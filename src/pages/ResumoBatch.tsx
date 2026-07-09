@@ -103,7 +103,7 @@ export default function ResumoBatch() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="batch-time">Horário diário</Label>
-            <Input id="batch-time" type="time" value={time} onChange={(event) => setTime(event.target.value)} />
+            <Input id="batch-time" type="time" value={time} onChange={(event) => setTime(event.target.value)}disabled={!enabled}/>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button onClick={() => setShowConfirm(true)} disabled={updateConfig.isPending || !hasScheduleChanges}>
