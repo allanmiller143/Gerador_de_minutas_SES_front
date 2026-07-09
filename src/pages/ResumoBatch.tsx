@@ -14,6 +14,14 @@ import {
 } from "@/services/domainData";
 import { Loader2, Play, Save, Square } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const formatDateTime = (value?: string) => (value ? new Date(value).toLocaleString("pt-BR") : "—");
 const formatLogTime = (value?: string) => (value ? new Date(value).toLocaleTimeString("pt-BR") : "--:--:--");
@@ -45,6 +53,7 @@ export default function ResumoBatch() {
   const cancelBatch = useCancelResumoBatchRun();
   const [enabled, setEnabled] = useState(false);
   const [time, setTime] = useState("03:00");
+  const [showConfirm, setShowConfirm] = useState(false);
   const activeRun = runs.find((run) => isLiveRun(run.status));
 
   useEffect(() => {
@@ -97,7 +106,7 @@ export default function ResumoBatch() {
             <Input id="batch-time" type="time" value={time} onChange={(event) => setTime(event.target.value)} />
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={save} disabled={updateConfig.isPending || !hasScheduleChanges}>
+            <Button onClick={() => setShowConfirm(true)} disabled={updateConfig.isPending || !hasScheduleChanges}>
               {updateConfig.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
               Salvar agenda
             </Button>
@@ -179,6 +188,26 @@ export default function ResumoBatch() {
           ))}
         </div>
       </section>
+    
+  <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Confirmar agendamento</DialogTitle>
+        <DialogDescription>
+          Durante a execução da rotina, o sistema pode apresentar lentidão e instabilidade temporária para todos os usuários. Recomenda-se agendar fora do horário de pico. Deseja confirmar o agendamento?
+        </DialogDescription>
+      </DialogHeader>
+      <DialogFooter>
+        <Button variant="outline" onClick={() => { setShowConfirm(false); setEnabled(false); }}>
+          Cancelar
+        </Button>
+        <Button onClick={() => { setShowConfirm(false); save(); }}>
+          Confirmar
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+
     </AppLayout>
   );
 }
