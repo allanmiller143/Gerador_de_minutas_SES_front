@@ -5,7 +5,7 @@ import { useGenerateResumo, useRestoreResumo, useResumoVersions, useSeiDetail, u
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Check, CheckCircle2, Save, Lock, Bot, Sparkles, FileText, RotateCcw, Loader2, Download } from "lucide-react";
+import { ArrowLeft, Check, CheckCircle2, Save, Lock, Bot, Sparkles, FileText, RotateCcw, Loader2, Download, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { downloadProcessoPDF, downloadKnowledgeBaseFile } from "@/lib/api";
 import { toast } from "sonner";
