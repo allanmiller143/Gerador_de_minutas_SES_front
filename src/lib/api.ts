@@ -199,7 +199,8 @@ export const downloadProcessoPDF = async (id: number, originalFilename: string):
     throw new Error(errorMsg);
   }
 
-  const blob = await response.blob();
+  const arrayBuffer = await response.arrayBuffer();
+  const blob = new Blob([arrayBuffer], { type: "application/pdf" });
   const blobUrl = window.URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.style.display = "none";
@@ -246,7 +247,8 @@ export const downloadKnowledgeBaseFile = async (filePath: string): Promise<void>
   const parts = filePath.split("/");
   const originalFilename = parts[parts.length - 1] || "documento.pdf";
 
-  const blob = await response.blob();
+  const arrayBuffer = await response.arrayBuffer();
+  const blob = new Blob([arrayBuffer], { type: "application/pdf" });
   const blobUrl = window.URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.style.display = "none";
