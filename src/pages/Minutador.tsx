@@ -20,8 +20,6 @@ import { PromptEditorDialog } from "./Resumo_Minuta/PromptEditorDialog";
 
 const etapas = ["Pré-análise", "Jurisprudências", "Minuta gerada", "Revisão humana"];
 
-
-
 const Minutador = () => {
   const { id } = useParams();
   const queryClient = useQueryClient();
@@ -177,8 +175,6 @@ const Minutador = () => {
       </AppLayout>
     );
   }
-
-
 
   const effectiveOwnerEmail = isAdmin && existingDraft ? existingDraft.ownerEmail : user?.email ?? "";
   const effectiveOwnerName = isAdmin && existingDraft ? existingDraft.ownerName : user?.name ?? "";
@@ -338,9 +334,21 @@ const Minutador = () => {
             <TabsContent value="resumo" className="mt-0">
               <div className="rounded-xl border border-border bg-secondary/20 p-4">
                 <div className="mb-3">
-                  <div className="flex items-center gap-2 mb-1 justify-between">
+                  <div className="flex flex-col md:flex-row md:items-center gap-3 mb-1 justify-between">
                     <h2 className="font-semibold">Resumo técnico preliminar</h2>
-                    <PromptEditorDialog />
+                    
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button size="sm" variant="outline" onClick={handleGenerateResumo} disabled={generateResumo.isPending || isResumoLoading}>
+                        {generateResumo.isPending || isResumoLoading ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <RotateCcw className="h-4 w-4 mr-2" />
+                        )}
+                        {generateResumo.isPending || isResumoLoading ? "Gerando..." : "Gerar novamente"}
+                      </Button>
+                      
+                      <PromptEditorDialog />
+                    </div>
                   </div>
                   {activeResumoVersion && (
                     <p className="text-xs text-muted-foreground mt-1">
@@ -470,16 +478,6 @@ const Minutador = () => {
                 ) : (
                   <p className="text-sm text-muted-foreground">Nenhum resumo técnico estruturado retornado pela API.</p>
                 )}
-                <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-4">
-                  <Button size="sm" variant="outline" onClick={handleGenerateResumo} disabled={generateResumo.isPending || isResumoLoading}>
-                    {generateResumo.isPending || isResumoLoading ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <RotateCcw className="h-4 w-4 mr-2" />
-                    )}
-                    {generateResumo.isPending || isResumoLoading ? "Gerando..." : "Gerar novamente"}
-                  </Button>
-                </div>
                 {resumoVersions.length > 0 && (
                   <div className="mt-3 rounded-lg border border-border bg-background/70 p-3">
                     <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Versões anteriores</div>
@@ -514,7 +512,7 @@ const Minutador = () => {
                 </div>
               ) : (
                 <>
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-4">
                     <div>
                       <h2 className="font-semibold">
                         {isFinalized ? "Minuta finalizada" : readOnly ? "Minuta (somente leitura)" : "Minuta – pronta para edição"}
@@ -526,7 +524,7 @@ const Minutador = () => {
                       )}
                     </div>
                     {!readOnly && (
-                      <div className="flex gap-2 items-center">
+                      <div className="flex flex-wrap gap-2 items-center">
                         <Button
                           variant="outline"
                           size="sm"
@@ -561,33 +559,6 @@ const Minutador = () => {
                     </div>
                   )}
 
-                  {/* Informações do Arquivo PDF do Processo */}
-                  {sei.arquivoPdf && (
-                    <div className="mb-4 p-4 rounded-xl border border-border bg-secondary/15 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="flex items-start gap-3">
-                        <div className="p-2 bg-primary/10 rounded-lg text-primary mt-0.5 shrink-0">
-                          <FileText className="h-5 w-5" />
-                        </div>
-                        <div className="min-w-0">
-                          <span className="text-xs text-muted-foreground font-medium block">Documento Original do Processo</span>
-                          <span className="text-sm font-semibold text-foreground break-all" title={sei.arquivoPdf}>
-                            {cleanFilename(sei.arquivoPdf)}
-                          </span>
-                        </div>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleDownloadPDF}
-                        disabled={isDownloading}
-                        className="shrink-0 bg-background hover:bg-secondary border-border shadow-sm flex items-center gap-2"
-                      >
-                        <Download className={cn("h-4 w-4", isDownloading && "animate-pulse")} />
-                        {isDownloading ? "Baixando..." : "Baixar PDF Original"}
-                      </Button>
-                    </div>
-                  )}
-
                   <RichTextEditor
                     value={minuta}
                     onChange={setMinuta}
@@ -602,6 +573,35 @@ const Minutador = () => {
         </section>
 
         <aside className="bg-card border border-border rounded-xl shadow-card p-5 h-fit space-y-6">
+          {sei.arquivoPdf && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <FileText className="h-4 w-4 text-primary" />
+                <h3 className="font-semibold text-sm">Documento do Processo</h3>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">
+                Arquivo PDF original recebido pelo SEI.
+              </p>
+              <div className="p-3 rounded-lg border border-border bg-secondary/15 flex flex-col gap-3">
+                <div className="min-w-0">
+                  <span className="text-sm font-semibold text-foreground break-all" title={sei.arquivoPdf}>
+                    {cleanFilename(sei.arquivoPdf)}
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadPDF}
+                  disabled={isDownloading}
+                  className="w-full bg-background hover:bg-secondary border-border shadow-sm flex items-center justify-center gap-2"
+                >
+                  <Download className={cn("h-4 w-4", isDownloading && "animate-pulse")} />
+                  {isDownloading ? "Baixando..." : "Baixar PDF Original"}
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Evidências clínicas */}
           {resumoTecnico && (
             <div>
@@ -681,8 +681,6 @@ const Minutador = () => {
               </div>
             </div>
           )}
-
-
 
           {/* Base de Conhecimento IA */}
           {documentosIA.length > 0 && (

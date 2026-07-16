@@ -9,7 +9,7 @@ export const PriorityBadge = ({ value }: { value: Priority }) => {
     Baixa: "bg-priority-low-bg text-priority-low",
   };
   return (
-    <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold", map[value])}>
+    <span className={cn("inline-flex w-fit items-center px-2.5 py-0.5 rounded-full text-xs font-semibold", map[value])}>
       {value}
     </span>
   );
@@ -22,7 +22,7 @@ export const StatusBadge = ({ value }: { value: SeiStatus }) => {
     "Concluído": "bg-priority-low-bg text-priority-low",
   };
   return (
-    <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold", map[value])}>
+    <span className={cn("inline-flex w-fit items-center px-2.5 py-0.5 rounded-full text-xs font-semibold", map[value])}>
       {value}
     </span>
   );
@@ -32,13 +32,13 @@ export const StatusBadge = ({ value }: { value: SeiStatus }) => {
 export const OriginBadge = ({ origin }: { origin: "ia" | "humano" }) => {
   if (origin === "ia") {
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-accent text-accent-foreground border border-primary/20">
+      <span className="inline-flex w-fit items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-accent text-accent-foreground border border-primary/20">
         <Bot className="h-3 w-3" /> Pré-análise
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-priority-low-bg text-priority-low">
+    <span className="inline-flex w-fit items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-priority-low-bg text-priority-low">
       <User className="h-3 w-3" /> Revisado por humano
     </span>
   );

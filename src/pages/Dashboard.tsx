@@ -3,12 +3,30 @@ import { Link } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MetricCard } from "@/components/shared/MetricCard";
 import { PriorityBadge, StatusBadge, OriginBadge } from "@/components/shared/Badges";
-import { Bot, UserCheck, Send, FileStack, ArrowRight, Eye, Sparkles, FileUp, Loader2, Clock } from "lucide-react";
+import { Bot, UserCheck, Send, FileStack, ArrowRight, Eye, Sparkles, FileUp, Loader2, Clock, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useDashboard } from "@/hooks/useDashboard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UploadDraftModal } from "@/components/shared/UploadDraftModal";
+
+// Componente auxiliar para truncar o assunto e mostrar o ícone de (i) -> ( texto truncado + ... + (i) )
+const AssuntoCell = ({ texto }: { texto: string }) => {
+  const MAX_LENGTH = 35; // Limite máximo de caracteres
+
+  if (!texto) return <span>—</span>;
+
+  if (texto.length <= MAX_LENGTH) {
+    return <span>{texto}</span>;
+  }
+
+  return (
+    <div className="flex items-center gap-1.5 group cursor-help w-fit" title={texto}>
+      <span>{texto.substring(0, MAX_LENGTH)}...</span>
+      <Info className="h-3.5 w-3.5 text-muted-foreground shrink-0 transition-colors group-hover:text-primary" />
+    </div>
+  );
+};
 
 const Dashboard = () => {
   const { data, metrics, isLoading } = useDashboard();
@@ -91,7 +109,7 @@ const Dashboard = () => {
                   <td className="px-5 py-3 font-mono text-xs">{s.numero}</td>
                   <td className="px-5 py-3">
                     <div className="flex flex-col gap-1">
-                      <span>{s.assunto}</span>
+                      <AssuntoCell texto={s.assunto} />
                       <OriginBadge origin="ia" />
                     </div>
                   </td>
@@ -174,7 +192,7 @@ const Dashboard = () => {
                         )}
                       </div>
                     </td>
-                    <td className="px-5 py-3">{s.assunto}</td>
+                    <td className="px-5 py-3"><AssuntoCell texto={s.assunto} /></td>
                     <td className="px-5 py-3">{s.analista ?? "—"}</td>
                     <td className="px-5 py-3"><PriorityBadge value={s.prioridade} /></td>
                     <td className="px-5 py-3 text-right">
@@ -219,7 +237,7 @@ const Dashboard = () => {
                   <td className="px-5 py-3 font-mono text-xs">{s.numero}</td>
                   <td className="px-5 py-3">
                     <div className="flex flex-col gap-1">
-                      <span>{s.assunto}</span>
+                      <AssuntoCell texto={s.assunto} />
                       <OriginBadge origin="humano" />
                     </div>
                   </td>
