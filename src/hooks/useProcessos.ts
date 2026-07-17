@@ -40,11 +40,11 @@ export const useAnalisarProcesso = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) => analisarProcessoIA(id),
+    // Ajustado para receber um objeto contendo o ID e a flag opcional
+    mutationFn: ({ id, apenasMinuta }: { id: number; apenasMinuta?: boolean }) => 
+      analisarProcessoIA(id, apenasMinuta),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["processos"] });
     },
   });
 };
-
-

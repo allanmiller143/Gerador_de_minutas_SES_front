@@ -164,11 +164,13 @@ export const uploadProcessoPDF = async (file: File, numero: string, assunto: str
 };
 
 // Solicita que o backend analise o processo utilizando a API do Gemini
-export const analisarProcessoIA = async (id: number): Promise<ProcessoSEI> => {
-  const response = await api<{ processo: ProcessoSEI }>(`/processos/${id}/analisar`, {
+export const analisarProcessoIA = async (id: number, apenasMinuta?: boolean): Promise<{ message: string, processo: ProcessoSEI }> => {
+  return await api<{ message: string, processo: ProcessoSEI }>(`/processos/${id}/analisar`, {
     method: "POST",
+    body: {
+      apenas_minuta: apenasMinuta
+    },
   });
-  return response.processo;
 };
 
 // Realiza o download do arquivo PDF do processo SEI diretamente do backend Flask

@@ -103,13 +103,17 @@ const Minutador = () => {
   const handleAnalisarIA = async () => {
     if (!sei) return;
     try {
-      toast.info("Iniciando a análise do processo com o Gemini IA... Isso pode levar alguns segundos.");
-      const updatedSei = await analisarProcesso(Number(sei.id));
+      toast.info("Iniciando a geração da minuta com o Gemini... Isso pode levar alguns segundos.");
+      
+      // Mudança aqui: passando um objeto com o ID e a flag 'apenasMinuta'
+      const updatedSei = await analisarProcesso({ 
+        id: Number(sei.id), 
+        apenasMinuta: true 
+      });
 
       if (updatedSei) {
-        // Invalidate all queries related to this SEI to update details and state immediately
         queryClient.invalidateQueries({ queryKey: domainDataQueryKeys.seiDetail(id) });
-        toast.success("Análise enfileirada com sucesso! O processamento está sendo executado em background.");
+        toast.success("Geração de minuta enfileirada com sucesso! O processamento está sendo executado em background.");
       }
     } catch (error: any) {
       console.error(error);
