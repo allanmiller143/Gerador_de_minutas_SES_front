@@ -130,8 +130,9 @@ export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Pro
 //Busca os processos SEI na API REST, com fallback para mock caso o backend não esteja rodando
 export const fetchProcessos = async (): Promise<ProcessoSEI[]> => {
   try {
-    const response = await api<{ processos: ProcessoSEI[] } | ProcessoSEI[]>("/processos/");
-    console.log(response);
+    const response = await api<{ processos: ProcessoSEI[] } | ProcessoSEI[]>("/processos/?per_page=500");
+    
+    console.log("Processos recebidos da API:", response);
     return Array.isArray(response) ? response : (response?.processos || []);
   } catch (error) {
     console.warn("REST API indisponível, usando dados mockados como fallback.", error);

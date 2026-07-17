@@ -52,15 +52,17 @@ export default function ResumoBatch() {
   const runBatch = useRunResumoBatch();
   const cancelBatch = useCancelResumoBatchRun();
   const [enabled, setEnabled] = useState(false);
+  const [initialized, setInitialized] = useState(false);
   const [time, setTime] = useState("03:00");
   const [showConfirm, setShowConfirm] = useState(false);
   const activeRun = runs.find((run) => isLiveRun(run.status));
 
   useEffect(() => {
-    if (!config) return;
+    if (!config || initialized) return;
     setEnabled(config.enabled);
     setTime(config.time);
-  }, [config]);
+    setInitialized(true);
+  }, [config, initialized]);
 
   const actor = user?.email ?? user?.name ?? "usuário";
   const hasScheduleChanges = !!config && (enabled !== config.enabled || time !== config.time);

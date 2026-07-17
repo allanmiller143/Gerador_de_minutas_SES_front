@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PriorityBadge, StatusBadge } from "@/components/shared/Badges";
@@ -6,7 +6,7 @@ import { type SeiStatus } from "@/data/mock";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useProcessos } from "@/hooks/useProcessos";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -25,6 +25,23 @@ const SeisList = () => {
       return matchQ && matchS;
     });
   }, [processos, q, status]);
+
+  // Estados da Paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // Exibir apenas os itens da página atual
+  const paginatedProcessos = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filtered.slice(startIndex, endIndex);
+  }, [filtered, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [q, status, itemsPerPage]);
 
   if (error) {
     return <AppLayout title="SEIs" subtitle="Não foi possível carregar os dados do backend." />;
@@ -50,12 +67,12 @@ const SeisList = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground bg-secondary/50">
-                <th className="px-5 py-3 font-medium">SEI</th>
+                <th className="px-5 py-3 font-medium whitespace-nowrap">SEI</th>
                 <th className="px-5 py-3 font-medium">Assunto</th>
-                <th className="px-5 py-3 font-medium">Recebimento</th>
-                <th className="px-5 py-3 font-medium">Prioridade</th>
-                <th className="px-5 py-3 font-medium">Status</th>
-                <th className="px-5 py-3 font-medium text-right">Ações</th>
+                <th className="px-5 py-3 font-medium whitespace-nowrap">Recebimento</th>
+                <th className="px-5 py-3 font-medium whitespace-nowrap">Prioridade</th>
+                <th className="px-5 py-3 font-medium whitespace-nowrap">Status</th>
+                <th className="px-5 py-3 font-medium text-right whitespace-nowrap">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -71,13 +88,13 @@ const SeisList = () => {
                   </tr>
                 ))
               ) :
-                filtered.map((s) => (
+                paginatedProcessos.map((s) => (
                   <tr key={s.id} className="border-t border-border hover:bg-secondary/40">
-                    <td className="px-5 py-3 font-mono text-xs">{s.numero}</td>
+                    <td className="px-5 py-3 font-mono text-xs whitespace-nowrap">{s.numero}</td>
                     <td className="px-5 py-3">{s.assunto}</td>
-                    <td className="px-5 py-3 text-muted-foreground">{s.dataRecebimento}</td>
-                    <td className="px-5 py-3"><PriorityBadge value={s.prioridade} /></td>
-                    <td className="px-5 py-3"><StatusBadge value={s.status} /></td>
+                    <td className="px-5 py-3 text-muted-foreground whitespace-nowrap">{s.dataRecebimento}</td>
+                    <td className="px-5 py-3 whitespace-nowrap"><PriorityBadge value={s.prioridade} /></td>
+                    <td className="px-5 py-3 whitespace-nowrap"><StatusBadge value={s.status} /></td>
                     <td className="px-5 py-3 text-right space-x-2">
                       <Button asChild size="sm" variant="ghost"><Link to={`/seis/${s.id}`}>Detalhes</Link></Button>
                       {s.status !== "Concluído" && (
@@ -97,12 +114,51 @@ const SeisList = () => {
                   </tr>
                 ))
               }
-              {!isLoading && filtered.length === 0 && (
+              {!isLoading && paginatedProcessos.length === 0 && (
                 <tr><td colSpan={6} className="px-5 py-10 text-center text-muted-foreground">Nenhum SEI encontrado.</td></tr>
               )}
             </tbody>
           </table>
         </div>
+        {/* Rodapé da Paginação */}
+        {!isLoading && filtered.length > 0 && (
+          <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-secondary/20">
+            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+              <p className="hidden sm:block">Itens por página</p>
+              <Select value={itemsPerPage.toString()} onValueChange={(val) => setItemsPerPage(Number(val))}>
+                <SelectTrigger className="h-8 w-[70px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {[10, 25, 50].map((size) => (
+                    <SelectItem key={size} value={size.toString()}>{size}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+              <span>
+                {(currentPage - 1) * itemsPerPage + 1}-
+                {Math.min(currentPage * itemsPerPage, filtered.length)} de {filtered.length}
+              </span>
+              <div className="flex items-center space-x-1">
+                <Button
+                  variant="outline" size="icon" className="h-8 w-8"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline" size="icon" className="h-8 w-8"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AppLayout>
   );
