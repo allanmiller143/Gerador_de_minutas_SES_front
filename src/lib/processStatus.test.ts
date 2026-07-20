@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isFailedStatus, isProcessingStatus, normalizeProcessingStatus } from "./processStatus";
+import { getProcessosPollingInterval, isFailedStatus, isProcessingStatus, normalizeProcessingStatus } from "./processStatus";
 
 describe("process status helpers", () => {
   it("recognizes Brazilian and English processing aliases", () => {
@@ -18,5 +18,10 @@ describe("process status helpers", () => {
   it("treats terminal states as not processing", () => {
     expect(isProcessingStatus("Concluído")).toBe(false);
     expect(isFailedStatus("Concluído")).toBe(false);
+  });
+
+  it("polls while any process remains in processing state", () => {
+    expect(getProcessosPollingInterval([{ status_processamento: "Processando" }] as any)).toBe(5000);
+    expect(getProcessosPollingInterval([{ status_processamento: "Concluído" }] as any)).toBe(false);
   });
 });

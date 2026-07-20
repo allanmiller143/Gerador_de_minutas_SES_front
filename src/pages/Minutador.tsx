@@ -17,7 +17,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { domainDataQueryKeys } from "@/services/domainData";
 import ReactMarkdown from "react-markdown";
 import { PromptEditorDialog } from "./Resumo_Minuta/PromptEditorDialog";
-import { isFailedStatus, isProcessingStatus } from "@/lib/processStatus";
+import { getProcessosPollingInterval, isFailedStatus, isProcessingStatus } from "@/lib/processStatus";
 
 const etapas = ["Pré-análise", "Jurisprudências", "Minuta gerada", "Revisão humana"];
 
@@ -26,7 +26,8 @@ const Minutador = () => {
   const queryClient = useQueryClient();
   const { data, isLoading, error } = useSeiDetail(id, {
     refetchInterval: (query: any) => {
-      return isProcessingStatus(query.state.data?.sei?.status_processamento) ? 3000 : false;
+      const sei = query.state.data?.sei;
+      return getProcessosPollingInterval(sei ? [sei] : []);
     }
   });
   const {
@@ -35,7 +36,8 @@ const Minutador = () => {
     error: resumoError,
   } = useSeiResumoTecnico(id, {
     refetchInterval: (query: any) => {
-      return isProcessingStatus(query.state.data?.sei?.status_processamento) ? 3000 : false;
+      const sei = query.state.data?.sei;
+      return getProcessosPollingInterval(sei ? [sei] : []);
     }
   });
   const { data: resumoVersions = [] } = useResumoVersions(id);

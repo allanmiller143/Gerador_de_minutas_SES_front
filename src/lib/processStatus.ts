@@ -1,5 +1,10 @@
 export type ProcessingStatusValue = "processing" | "failed" | "completed" | "idle";
 
+interface ProcessingStatusLike {
+  status_processamento?: string | null;
+  processing_error?: string | null;
+}
+
 const normalizeValue = (value?: string | null) => (value ? String(value).trim().toLowerCase() : "");
 
 export const normalizeProcessingStatus = (value?: string | null): ProcessingStatusValue => {
@@ -20,6 +25,11 @@ export const normalizeProcessingStatus = (value?: string | null): ProcessingStat
   }
 
   return "idle";
+};
+
+export const getProcessosPollingInterval = (processos?: ProcessingStatusLike[] | null) => {
+  const hasProcessing = processos?.some((processo) => normalizeProcessingStatus(processo.status_processamento) === "processing");
+  return hasProcessing ? 5000 : false;
 };
 
 export const isProcessingStatus = (value?: string | null) => normalizeProcessingStatus(value) === "processing";

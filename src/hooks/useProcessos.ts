@@ -3,6 +3,7 @@ import { fetchProcessos, uploadProcessoPDF, analisarProcessoIA } from "@/lib/api
 import { useDrafts } from "@/context/DraftsContext";
 import { getEffectiveList } from "@/data/mock";
 import { ProcessoSEI } from "@/types/sei";
+import { getProcessosPollingInterval } from "@/lib/processStatus";
 
 export const useProcessos = () => {
   const { drafts, priorities } = useDrafts();
@@ -11,6 +12,10 @@ export const useProcessos = () => {
     queryKey: ["processos"],
     queryFn: fetchProcessos,
     staleTime: 1000 * 60 * 5, // 5 minutos de cache
+    refetchInterval: (query) => {
+      const processos = query.state.data as ProcessoSEI[] | undefined;
+      return getProcessosPollingInterval(processos);
+    },
   });
 
   // Mescla os rascunhos locais e prioridades em tempo de execução
