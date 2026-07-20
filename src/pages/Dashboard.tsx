@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { useDashboard } from "@/hooks/useDashboard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UploadDraftModal } from "@/components/shared/UploadDraftModal";
+import { isFailedStatus, isProcessingStatus } from "@/lib/processStatus";
 
 // Componente auxiliar para truncar o assunto e mostrar o ícone de (i) -> ( texto truncado + ... + (i) )
 const AssuntoCell = ({ texto }: { texto: string }) => {
@@ -125,12 +126,12 @@ const Dashboard = () => {
                   </td>
                   <td className="px-5 py-3"><PriorityBadge value={s.prioridade} /></td>
                   <td className="px-5 py-3 w-40">
-                    {s.status_processamento === "Processando" ? (
+                    {isProcessingStatus(s.status_processamento) ? (
                       <div className="flex items-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin text-primary" />
                         <span className="text-xs text-muted-foreground animate-pulse">Analisando...</span>
                       </div>
-                    ) : s.status_processamento === "Falhou" ? (
+                    ) : isFailedStatus(s.status_processamento) ? (
                       <span className="text-xs font-semibold text-destructive">Falha na análise</span>
                     ) : (
                       <div className="flex items-center gap-2">
@@ -140,7 +141,7 @@ const Dashboard = () => {
                     )}
                   </td>
                   <td className="px-5 py-3 text-right">
-                    {s.status_processamento === "Processando" ? (
+                    {isProcessingStatus(s.status_processamento) ? (
                       <Button size="sm" disabled className="cursor-not-allowed">
                         <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Analisando
                       </Button>

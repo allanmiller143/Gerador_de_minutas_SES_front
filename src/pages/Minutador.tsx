@@ -17,6 +17,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { domainDataQueryKeys } from "@/services/domainData";
 import ReactMarkdown from "react-markdown";
 import { PromptEditorDialog } from "./Resumo_Minuta/PromptEditorDialog";
+import { isFailedStatus, isProcessingStatus } from "@/lib/processStatus";
 
 const etapas = ["Pré-análise", "Jurisprudências", "Minuta gerada", "Revisão humana"];
 
@@ -25,7 +26,7 @@ const Minutador = () => {
   const queryClient = useQueryClient();
   const { data, isLoading, error } = useSeiDetail(id, {
     refetchInterval: (query: any) => {
-      return query.state.data?.sei?.status_processamento === "Processando" ? 3000 : false;
+      return isProcessingStatus(query.state.data?.sei?.status_processamento) ? 3000 : false;
     }
   });
   const {
@@ -34,7 +35,7 @@ const Minutador = () => {
     error: resumoError,
   } = useSeiResumoTecnico(id, {
     refetchInterval: (query: any) => {
-      return query.state.data?.sei?.status_processamento === "Processando" ? 3000 : false;
+      return isProcessingStatus(query.state.data?.sei?.status_processamento) ? 3000 : false;
     }
   });
   const { data: resumoVersions = [] } = useResumoVersions(id);
@@ -129,7 +130,7 @@ const Minutador = () => {
   const isAdmin = user?.role === "administrador";
   const isLockedByOther = !!existingDraft && !!user && existingDraft.ownerEmail !== user.email && !isAdmin;
   const isFinalized = existingDraft?.status === "Concluído";
-  const readOnly = isLockedByOther || isFinalized || sei?.status_processamento === "Processando";
+  const readOnly = isLockedByOther || isFinalized || isProcessingStatus(sei?.status_processamento);
 
   const etapaAtual = isResumoLoading ? 1 : isFinalized ? 3 : 2;
 
@@ -254,7 +255,7 @@ const Minutador = () => {
       <div className="mb-4">
         <Button asChild variant="ghost" size="sm"><Link to="/seis"><ArrowLeft className="h-4 w-4 mr-1" /> Voltar</Link></Button>
       </div>
-      {sei.status_processamento === "Processando" && (
+      {isProcessingStatus(sei?.status_processamento) && (
         <div className="mb-6 p-4 border border-blue-200 bg-blue-50/50 dark:bg-blue-950/20 dark:border-blue-900 rounded-xl flex items-center gap-3 text-blue-800 dark:text-blue-200 animate-pulse">
           <Loader2 className="h-5 w-5 animate-spin text-blue-600 dark:text-blue-400 shrink-0" />
           <div className="text-sm">
@@ -263,7 +264,7 @@ const Minutador = () => {
         </div>
       )}
 
-      {sei.status_processamento === "Falhou" && (
+      {isFailedStatus(sei?.status_processamento) && (
         <div className="mb-6 p-4 border border-destructive/20 bg-destructive/5 rounded-xl flex items-center gap-3 text-destructive font-medium">
           <AlertTriangle className="h-5 w-5 shrink-0" />
           <div className="text-sm">

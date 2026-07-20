@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useProcessos } from "@/hooks/useProcessos";
 import { Skeleton } from "@/components/ui/skeleton";
+import { isProcessingStatus } from "@/lib/processStatus";
 
 const statusOptions: (SeiStatus | "Todos")[] = ["Todos", "Pré-análise", "Em revisão", "Concluído"];
 
@@ -98,7 +99,7 @@ const SeisList = () => {
                     <td className="px-5 py-3 text-right space-x-2">
                       <Button asChild size="sm" variant="ghost"><Link to={`/seis/${s.id}`}>Detalhes</Link></Button>
                       {s.status !== "Concluído" && (
-                        s.status_processamento === "Processando" ? (
+                        isProcessingStatus(s.status_processamento) ? (
                           <Button size="sm" disabled className="cursor-not-allowed">
                             <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Analisando
                           </Button>
