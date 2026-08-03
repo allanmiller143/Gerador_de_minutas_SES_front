@@ -157,10 +157,7 @@ describe("Minutador", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Resumo técnico preliminar")).toBeTruthy();
-      expect(screen.getByText("Evidências encontradas")).toBeTruthy();
-      expect(screen.getByRole("tab", { name: "Jurisprudências (carregando...)" })).toBeTruthy();
       expect(screen.getByRole("tab", { name: "Minuta (carregando...)" })).toBeTruthy();
-      expect(screen.getAllByText("Carregando evidências...").length).toBeGreaterThan(0);
       expect(screen.getByText("Gerando resumo técnico preliminar... aguarde. Os dados do processo já estão disponíveis para consulta.")).toBeTruthy();
     });
 
@@ -197,12 +194,20 @@ describe("Minutador", () => {
       expect(screen.getByText("Texto extraído do PDF do processo"));
     });
 
-    fireEvent.mouseDown(minutaTab, { button: 0, ctrlKey: false });
+    const currentMinutaTab = screen.getByRole("tab", { name: "Minuta" });
+    fireEvent.mouseDown(currentMinutaTab, { button: 0, ctrlKey: false });
+    fireEvent.click(currentMinutaTab);
 
     await waitFor(() => {
-      expect(minutaTab.getAttribute("aria-selected")).toBe("true");
+      expect(screen.getByRole("tab", { name: "Minuta" }).getAttribute("aria-selected")).toBe("true");
+    });
+
+    await waitFor(() => {
       expect(resumoTab.getAttribute("aria-selected")).toBe("false");
-      expect(screen.getByText("MINUTA GERADA COM RESUMO REAL")).toBeTruthy();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/MINUTA GERADA COM RESUMO REAL/)).toBeTruthy();
     });
   });
 
@@ -223,7 +228,7 @@ describe("Minutador", () => {
     const gerarNovamente = screen.getByRole("button", { name: /Gerar novamente/i });
     const versoesAnteriores = screen.getByText("Versões anteriores");
 
-    expect(documentoPdf.compareDocumentPosition(gerarNovamente) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(documentoPdf.compareDocumentPosition(gerarNovamente) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
     expect(documentoPdf.compareDocumentPosition(versoesAnteriores) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

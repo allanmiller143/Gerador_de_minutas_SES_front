@@ -32,19 +32,39 @@
   color: hsl(var(--foreground));
   flex: 1;
   word-wrap: break-word;
-  white-space: pre-wrap;
   word-break: break-word;
   overflow-y: auto;
   max-height: 100vh;
 }
 
-.rich-text-content:focus {
+.rich-text-content .ProseMirror {
   outline: none;
+  min-height: inherit;
 }
 
-.rich-text-content:empty::before {
+.rich-text-content .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   color: hsl(var(--muted-foreground));
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.raw-markdown-editor {
+  padding: 1.5rem 2rem;
+  width: 100%;
+  border: none;
+  outline: none;
+  background: hsl(var(--muted) / 0.15);
+  color: hsl(var(--foreground));
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.raw-markdown-editor:focus {
+  outline: none;
 }
 
 /* Estilos padrão do editor */
@@ -72,8 +92,14 @@
   margin: 1rem 0 0.5rem 0;
 }
 
-.rich-text-content ul,
+.rich-text-content ul {
+  list-style-type: disc;
+  margin: 0.75rem 0;
+  padding-left: 2rem;
+}
+
 .rich-text-content ol {
+  list-style-type: decimal;
   margin: 0.75rem 0;
   padding-left: 2rem;
 }
