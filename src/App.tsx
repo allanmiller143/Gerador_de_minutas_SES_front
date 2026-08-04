@@ -16,6 +16,7 @@ import Relatorios from "./pages/Relatorios.tsx";
 import Configuracoes from "./pages/Configuracoes.tsx";
 import ResumoBatch from "./pages/ResumoBatch.tsx";
 import MinhasAnalises from "./pages/MinhasAnalises.tsx";
+import Remetentes from "./pages/Remetentes.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
               <Route path="/seis/:id" element={<ProtectedRoute><SeiDetail /></ProtectedRoute>} />
               <Route path="/minutador/:id" element={<ProtectedRoute><Minutador /></ProtectedRoute>} />
               <Route path="/minhas-analises" element={<ProtectedRoute><MinhasAnalises /></ProtectedRoute>} />
+              <Route path="/remetentes" element={<ProtectedRoute><Remetentes /></ProtectedRoute>} />
               <Route path="/jurisprudencias" element={<ProtectedRoute><Jurisprudencias /></ProtectedRoute>} />
               <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
               <Route path="/configuracoes" element={<ProtectedRoute roles={["administrador"]}><Configuracoes /></ProtectedRoute>} />

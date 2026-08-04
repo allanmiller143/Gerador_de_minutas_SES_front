@@ -1,19 +1,39 @@
-import { useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 
-import { PriorityBadge, StatusBadge } from "@/components/shared/Badges";
+import { PriorityBadge, StatusBadge, RemetenteBadge } from "@/components/shared/Badges";
+import { SortableHeader, sortProcessos, SortConfig } from "@/components/shared/SortableHeader";
+import { TablePagination } from "@/components/shared/TablePagination";
 import { Button } from "@/components/ui/button";
 import { Pencil, Eye, Lock } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useDrafts } from "@/context/DraftsContext";
 import { useProcessos } from "@/hooks/useProcessos";
+import { useRemetentes } from "@/hooks/useRemetentes";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const MinhasAnalises = () => {
   const { user } = useAuth();
   const { drafts } = useDrafts();
   const { data: processos, isLoading, error } = useProcessos();
+  const { remetentes } = useRemetentes();
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ field: null, direction: null });
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  useEffect(() => { setCurrentPage(1); }, [sortConfig]);
+
+  const handleSort = (field: string) => {
+    setSortConfig((prev) => {
+      if (prev.field === field) {
+        if (prev.direction === "asc") return { field, direction: "desc" };
+        if (prev.direction === "desc") return { field: null, direction: null };
+      }
+      return { field, direction: "asc" };
+    });
+  };
 
   // "Minhas análises" = SEIs onde o usuário atual é dono do rascunho (em revisão ou concluído)
   const meusIds = useMemo(() => {
@@ -24,8 +44,16 @@ const MinhasAnalises = () => {
 
   const minhas = useMemo(() => {
     if (!processos) return [];
-    return processos.filter((s) => meusIds.includes(s.id));
-  }, [processos, meusIds]);
+    const list = processos.filter((s) => meusIds.includes(s.id));
+    return sortProcessos(list, sortConfig.field, sortConfig.direction, remetentes);
+  }, [processos, meusIds, sortConfig, remetentes]);
+
+  const paginatedMinhas = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return minhas.slice(start, start + itemsPerPage);
+  }, [minhas, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(minhas.length / itemsPerPage);
 
   if (isLoading) {
     return <AppLayout title="Minhas Análises" subtitle="Carregando dados do backend..." />;
@@ -41,10 +69,10 @@ const MinhasAnalises = () => {
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground bg-secondary/50">
-              <th className="px-5 py-3 font-medium">SEI</th>
-              <th className="px-5 py-3 font-medium">Assunto</th>
-              <th className="px-5 py-3 font-medium">Prioridade</th>
-              <th className="px-5 py-3 font-medium">Situação</th>
+              <SortableHeader field="numero" currentSort={sortConfig} onSort={handleSort}>SEI</SortableHeader>
+              <SortableHeader field="assunto" currentSort={sortConfig} onSort={handleSort}>Assunto</SortableHeader>
+              <SortableHeader field="prioridade" currentSort={sortConfig} onSort={handleSort}>Prioridade</SortableHeader>
+              <SortableHeader field="status" currentSort={sortConfig} onSort={handleSort}>Situação</SortableHeader>
               <th className="px-5 py-3 font-medium text-right">Ações</th>
             </tr>
           </thead>
@@ -60,12 +88,17 @@ const MinhasAnalises = () => {
                 </tr>
               ))
             ) : (
-              minhas.map((s) => {
+              paginatedMinhas.map((s) => {
                 const draft = drafts[s.id];
                 const finalized = draft?.status === "Concluído";
                 return (
                   <tr key={s.id} className="border-t border-border hover:bg-secondary/40">
-                    <td className="px-5 py-3 font-mono text-xs">{s.numero}</td>
+                    <td className="px-5 py-3 font-mono text-xs">
+                      <div className="flex items-center gap-2">
+                        <span>{s.numero}</span>
+                        <RemetenteBadge numero={s.numero} remetentes={remetentes} />
+                      </div>
+                    </td>
                     <td className="px-5 py-3">{s.assunto}</td>
                     <td className="px-5 py-3"><PriorityBadge value={s.prioridade} /></td>
                     <td className="px-5 py-3">
@@ -96,6 +129,17 @@ const MinhasAnalises = () => {
             )}
           </tbody>
         </table>
+        {!isLoading && minhas.length > 0 && (
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={minhas.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={setItemsPerPage}
+            pageSizeOptions={[5, 10, 20]}
+          />
+        )}
       </div>
     </AppLayout>
   );

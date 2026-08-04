@@ -1,13 +1,17 @@
 import { useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { PriorityBadge, StatusBadge } from "@/components/shared/Badges";
+import { PriorityBadge, StatusBadge, RemetenteBadge } from "@/components/shared/Badges";
+import { MultiSelectRemetenteFilter, filterProcessosByRemetentes } from "@/components/shared/MultiSelectRemetenteFilter";
+import { SortableHeader, sortProcessos, SortConfig } from "@/components/shared/SortableHeader";
+import { TablePagination } from "@/components/shared/TablePagination";
 import { type SeiStatus } from "@/data/mock";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useProcessos } from "@/hooks/useProcessos";
+import { useRemetentes } from "@/hooks/useRemetentes";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isProcessingStatus } from "@/lib/processStatus";
 
@@ -15,17 +19,33 @@ const statusOptions: (SeiStatus | "Todos")[] = ["Todos", "Pré-análise", "Em re
 
 const SeisList = () => {
   const { data: processos, isLoading, error } = useProcessos();
+  const { remetentes } = useRemetentes();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("Todos");
+  const [selectedRemetentes, setSelectedRemetentes] = useState<string[]>([]);
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ field: null, direction: null });
+
+  const handleSort = (field: string) => {
+    setSortConfig((prev) => {
+      if (prev.field === field) {
+        if (prev.direction === "asc") return { field, direction: "desc" };
+        if (prev.direction === "desc") return { field: null, direction: null };
+      }
+      return { field, direction: "asc" };
+    });
+  };
 
   const filtered = useMemo(() => {
     if (!processos) return [];
-    return processos.filter((s) => {
-      const matchQ = !q || s.numero.includes(q) || s.assunto.toLowerCase().includes(q.toLowerCase());
+    const searchFiltered = processos.filter((s) => {
+      const matchQ = !q || s.numero.toLowerCase().includes(q.toLowerCase()) || s.assunto.toLowerCase().includes(q.toLowerCase());
       const matchS = status === "Todos" || s.status === status;
       return matchQ && matchS;
     });
-  }, [processos, q, status]);
+
+    const remFiltered = filterProcessosByRemetentes(searchFiltered, selectedRemetentes, remetentes);
+    return sortProcessos(remFiltered, sortConfig.field, sortConfig.direction, remetentes);
+  }, [processos, remetentes, q, status, selectedRemetentes, sortConfig]);
 
   // Estados da Paginação
   const [currentPage, setCurrentPage] = useState(1);
@@ -42,7 +62,7 @@ const SeisList = () => {
   
   useEffect(() => {
     setCurrentPage(1);
-  }, [q, status, itemsPerPage]);
+  }, [q, status, selectedRemetentes, itemsPerPage]);
 
   if (error) {
     return <AppLayout title="SEIs" subtitle="Não foi possível carregar os dados do backend." />;
@@ -56,23 +76,31 @@ const SeisList = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Buscar por número ou assunto..." className="pl-9" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
-          <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger className="md:w-52"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {statusOptions.map((s) => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
-            </SelectContent>
-          </Select>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent>
+                {statusOptions.map((s) => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
+              </SelectContent>
+            </Select>
+
+            <MultiSelectRemetenteFilter
+              selected={selectedRemetentes}
+              onChange={setSelectedRemetentes}
+              remetentes={remetentes}
+            />
+          </div>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground bg-secondary/50">
-                <th className="px-5 py-3 font-medium whitespace-nowrap">SEI</th>
-                <th className="px-5 py-3 font-medium">Assunto</th>
-                <th className="px-5 py-3 font-medium whitespace-nowrap">Recebimento</th>
-                <th className="px-5 py-3 font-medium whitespace-nowrap">Prioridade</th>
-                <th className="px-5 py-3 font-medium whitespace-nowrap">Status</th>
+                <SortableHeader field="numero" currentSort={sortConfig} onSort={handleSort} className="whitespace-nowrap">SEI</SortableHeader>
+                <SortableHeader field="assunto" currentSort={sortConfig} onSort={handleSort}>Assunto</SortableHeader>
+                <SortableHeader field="dataRecebimento" currentSort={sortConfig} onSort={handleSort} className="whitespace-nowrap">Recebimento</SortableHeader>
+                <SortableHeader field="prioridade" currentSort={sortConfig} onSort={handleSort} className="whitespace-nowrap">Prioridade</SortableHeader>
+                <SortableHeader field="status" currentSort={sortConfig} onSort={handleSort} className="whitespace-nowrap">Status</SortableHeader>
                 <th className="px-5 py-3 font-medium text-right whitespace-nowrap">Ações</th>
               </tr>
             </thead>
@@ -91,7 +119,12 @@ const SeisList = () => {
               ) :
                 paginatedProcessos.map((s) => (
                   <tr key={s.id} className="border-t border-border hover:bg-secondary/40">
-                    <td className="px-5 py-3 font-mono text-xs whitespace-nowrap">{s.numero}</td>
+                    <td className="px-5 py-3 font-mono text-xs whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <span>{s.numero}</span>
+                        <RemetenteBadge numero={s.numero} remetentes={remetentes} />
+                      </div>
+                    </td>
                     <td className="px-5 py-3">{s.assunto}</td>
                     <td className="px-5 py-3 text-muted-foreground whitespace-nowrap">{s.dataRecebimento}</td>
                     <td className="px-5 py-3 whitespace-nowrap"><PriorityBadge value={s.prioridade} /></td>
@@ -123,42 +156,15 @@ const SeisList = () => {
         </div>
         {/* Rodapé da Paginação */}
         {!isLoading && filtered.length > 0 && (
-          <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-secondary/20">
-            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-              <p className="hidden sm:block">Itens por página</p>
-              <Select value={itemsPerPage.toString()} onValueChange={(val) => setItemsPerPage(Number(val))}>
-                <SelectTrigger className="h-8 w-[70px]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {[10, 25, 50].map((size) => (
-                    <SelectItem key={size} value={size.toString()}>{size}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-              <span>
-                {(currentPage - 1) * itemsPerPage + 1}-
-                {Math.min(currentPage * itemsPerPage, filtered.length)} de {filtered.length}
-              </span>
-              <div className="flex items-center space-x-1">
-                <Button
-                  variant="outline" size="icon" className="h-8 w-8"
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline" size="icon" className="h-8 w-8"
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filtered.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={setItemsPerPage}
+            pageSizeOptions={[10, 25, 50]}
+          />
         )}
       </div>
     </AppLayout>
