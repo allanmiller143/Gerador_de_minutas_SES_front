@@ -46,13 +46,13 @@ const Dashboard = () => {
 
   // Pagination states for all 3 Dashboard tables
   const [pagePre, setPagePre] = useState(1);
-  const [pageSizePre, setPageSizePre] = useState(5);
+  const [pageSizePre, setPageSizePre] = useState(10);
 
   const [pageEmRevisao, setPageEmRevisao] = useState(1);
-  const [pageSizeEmRevisao, setPageSizeEmRevisao] = useState(5);
+  const [pageSizeEmRevisao, setPageSizeEmRevisao] = useState(10);
 
   const [pageRevisados, setPageRevisados] = useState(1);
-  const [pageSizeRevisados, setPageSizeRevisados] = useState(5);
+  const [pageSizeRevisados, setPageSizeRevisados] = useState(10);
 
   useEffect(() => { setPagePre(1); }, [filterPre, sortPre]);
   useEffect(() => { setPageEmRevisao(1); }, [filterEmRevisao, sortEmRevisao]);
@@ -268,7 +268,7 @@ const Dashboard = () => {
           itemsPerPage={pageSizePre}
           onPageChange={setPagePre}
           onItemsPerPageChange={setPageSizePre}
-          pageSizeOptions={[5, 10, 20]}
+          pageSizeOptions={[10, 25, 50]}
         />
       </section>
 
@@ -300,8 +300,8 @@ const Dashboard = () => {
                       <span>{s.numero}</span>
                       <RemetenteBadge numero={s.numero} remetentes={remetentes} />
                       {s.isEditadoLocalmente && (
-                        <span 
-                          className="h-2 w-2 rounded-full bg-orange-500 shrink-0" 
+                        <span
+                          className="h-2 w-2 rounded-full bg-orange-500 shrink-0"
                           title="Texto da IA foi alterado"
                         />
                       )}
@@ -330,7 +330,7 @@ const Dashboard = () => {
           itemsPerPage={pageSizeEmRevisao}
           onPageChange={setPageEmRevisao}
           onItemsPerPageChange={setPageSizeEmRevisao}
-          pageSizeOptions={[5, 10, 20]}
+          pageSizeOptions={[10, 25, 50]}
         />
       </section>
 
@@ -398,13 +398,13 @@ const Dashboard = () => {
           itemsPerPage={pageSizeRevisados}
           onPageChange={setPageRevisados}
           onItemsPerPageChange={setPageSizeRevisados}
-          pageSizeOptions={[5, 10, 20]}
+          pageSizeOptions={[10, 25, 50]}
         />
       </section>
 
-      <UploadDraftModal 
-        isOpen={isUploadModalOpen} 
-        onClose={() => setIsUploadModalOpen(false)} 
+      <UploadDraftModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
       />
     </AppLayout>
   );
