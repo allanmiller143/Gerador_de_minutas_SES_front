@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, type UseQueryOptions } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type { Jurisprudencia, Sei } from "@/data/mock";
 import { toast } from "sonner";
@@ -132,8 +132,11 @@ export function useJurisprudencias() {
   });
 }
 
-export function useSeiDetail(id?: string, options?: any) {
-  return useQuery({
+export function useSeiDetail(
+  id?: string,
+  options?: Omit<UseQueryOptions<SeiDetailResponse, Error, SeiDetailResponse>, "queryKey" | "queryFn">
+) {
+  return useQuery<SeiDetailResponse, Error>({
     queryKey: domainDataQueryKeys.seiDetail(id),
     enabled: !!id,
     queryFn: async () => api<SeiDetailResponse>(`/api/seis/${id}`),
@@ -141,8 +144,11 @@ export function useSeiDetail(id?: string, options?: any) {
   });
 }
 
-export function useSeiResumoTecnico(id?: string, options?: any) {
-  return useQuery({
+export function useSeiResumoTecnico(
+  id?: string,
+  options?: Omit<UseQueryOptions<SeiResumoTecnicoResponse, Error, SeiResumoTecnicoResponse>, "queryKey" | "queryFn">
+) {
+  return useQuery<SeiResumoTecnicoResponse, Error>({
     queryKey: [...domainDataQueryKeys.seiDetail(id), "resumo-tecnico"] as const,
     enabled: !!id,
     queryFn: async () => api<SeiResumoTecnicoResponse>(`/api/seis/${id}/resumo-tecnico`),

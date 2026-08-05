@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { getEffectiveSei, type Priority, jurisprudencias } from "@/data/mock";
+import { getEffectiveSei, type Priority } from "@/data/mock";
 import { useSeiDetail } from "@/services/domainData";
 import { PriorityBadge, StatusBadge, OriginBadge } from "@/components/shared/Badges";
 import { Button } from "@/components/ui/button";
