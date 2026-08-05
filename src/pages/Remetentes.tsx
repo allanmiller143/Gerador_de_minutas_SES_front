@@ -195,7 +195,7 @@ export default function Remetentes() {
   });
 
   return (
-    <AppLayout>
+    <AppLayout title="Remetentes" subtitle="Cadastre e gerencie os remetentes de processos e documentos no sistema">
       <div className="p-6 space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -396,9 +396,8 @@ export default function Remetentes() {
                       <button
                         key={c}
                         type="button"
-                        className={`h-6 w-6 rounded-full border transition-transform hover:scale-110 ${
-                          form.cor === c ? "ring-2 ring-primary ring-offset-1" : ""
-                        }`}
+                        className={`h-6 w-6 rounded-full border transition-transform hover:scale-110 ${form.cor === c ? "ring-2 ring-primary ring-offset-1" : ""
+                          }`}
                         style={{ backgroundColor: c }}
                         onClick={() => setForm({ ...form, cor: c })}
                       />

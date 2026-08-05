@@ -33,7 +33,7 @@ export const useUploadProcesso = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ file, numero, assunto, prioridade }: { file: File; numero: string; assunto: string; prioridade: string }) => 
+    mutationFn: ({ file, numero, assunto, prioridade }: { file: File; numero: string; assunto: string; prioridade: string }) =>
       uploadProcessoPDF(file, numero, assunto, prioridade),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["processos"] });
@@ -46,7 +46,7 @@ export const useAnalisarProcesso = () => {
 
   return useMutation({
     // Ajustado para receber um objeto contendo o ID e a flag opcional
-    mutationFn: ({ id, apenasMinuta }: { id: number; apenasMinuta?: boolean }) => 
+    mutationFn: ({ id, apenasMinuta }: { id: number; apenasMinuta?: boolean }) =>
       analisarProcessoIA(id, apenasMinuta),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["processos"] });

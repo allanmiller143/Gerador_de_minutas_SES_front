@@ -51,9 +51,9 @@ export const DraftsProvider = ({ children }: { children: ReactNode }) => {
   const [events, setEvents] = useState<SeiEvent[]>([]);
 
   useEffect(() => {
-    try { const r = localStorage.getItem(STORAGE_KEY); if (r) setDrafts(JSON.parse(r)); } catch {}
-    try { const r = localStorage.getItem(PRIORITIES_KEY); if (r) setPriorities(JSON.parse(r)); } catch {}
-    try { const r = localStorage.getItem(EVENTS_KEY); if (r) setEvents(JSON.parse(r)); } catch {}
+    try { const r = localStorage.getItem(STORAGE_KEY); if (r) setDrafts(JSON.parse(r)); } catch { }
+    try { const r = localStorage.getItem(PRIORITIES_KEY); if (r) setPriorities(JSON.parse(r)); } catch { }
+    try { const r = localStorage.getItem(EVENTS_KEY); if (r) setEvents(JSON.parse(r)); } catch { }
   }, []);
 
   const persistDrafts = (next: Record<number, Draft>) => {

@@ -5,7 +5,7 @@ import { Topbar } from "./Topbar";
 interface AppLayoutProps {
   title: string;
   subtitle?: string;
-  children: ReactNode;
+  children?: ReactNode;
 }
 
 export const AppLayout = ({ title, subtitle, children }: AppLayoutProps) => {
