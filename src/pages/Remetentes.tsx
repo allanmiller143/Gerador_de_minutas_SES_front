@@ -130,6 +130,28 @@ export default function Remetentes() {
       return;
     }
 
+    const prefixoExistente = remetentes.some(
+      (r) =>
+        r.id !== editingRemetente?.id &&
+        r.prefixo.trim().toLowerCase() === form.prefixo.trim().toLowerCase()
+    );
+
+    if (prefixoExistente) {
+      toast.error(`Já existe um remetente com o prefixo "${form.prefixo.trim()}".`);
+      return;
+    }
+
+    const siglaExistente = remetentes.some(
+      (r) =>
+        r.id !== editingRemetente?.id &&
+        r.sigla.trim().toLowerCase() === form.sigla.trim().toLowerCase()
+    );
+
+    if (siglaExistente) {
+      toast.error(`Já existe um remetente com a sigla "${form.sigla.trim()}".`);
+      return;
+    }
+
     setSubmitting(true);
     try {
       if (editingRemetente) {
