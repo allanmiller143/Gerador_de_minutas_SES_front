@@ -1,7 +1,7 @@
 // Cliente HTTP com JWT (access + refresh) e refresh automático em 401.
 
 import { ProcessoSEI, DashboardMetrics } from "../types/sei";
-import { computeMetrics, seis } from "../data/mock";
+import { computeMetrics } from "../data/mock";
 
 export const API_BASE_URL =
   (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, "") ||
@@ -127,21 +127,12 @@ export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Pro
 
 //Modelagem e requisições do dashboard
 
-//Busca os processos SEI na API REST, com fallback para mock caso o backend não esteja rodando
+//Busca os processos SEI na API REST
 export const fetchProcessos = async (): Promise<ProcessoSEI[]> => {
-  try {
-    const response = await api<{ processos: ProcessoSEI[] } | ProcessoSEI[]>("/processos/?all=true");
-    
-    console.log("Processos recebidos da API:", response);
-    return Array.isArray(response) ? response : (response?.processos || []);
-  } catch (error) {
-    console.warn("REST API indisponível, usando dados mockados como fallback.", error);
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(seis as unknown as ProcessoSEI[]);
-      }, 800);
-    });
-  }
+  const response = await api<{ processos: ProcessoSEI[] } | ProcessoSEI[]>("/processos/?all=true");
+  
+  console.log("Processos recebidos da API:", response);
+  return Array.isArray(response) ? response : (response?.processos || []);
 };
 export const fetchMetrics = async (processos: ProcessoSEI[]): Promise<DashboardMetrics> => {
   return computeMetrics(processos as any);
