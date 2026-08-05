@@ -6,7 +6,8 @@ import { PriorityBadge, StatusBadge, RemetenteBadge } from "@/components/shared/
 import { SortableHeader, sortProcessos, SortConfig } from "@/components/shared/SortableHeader";
 import { TablePagination } from "@/components/shared/TablePagination";
 import { Button } from "@/components/ui/button";
-import { Pencil, Eye, Lock } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Pencil, Eye, Lock, Search } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useDrafts } from "@/context/DraftsContext";
 import { useProcessos } from "@/hooks/useProcessos";
@@ -18,12 +19,13 @@ const MinhasAnalises = () => {
   const { drafts } = useDrafts();
   const { data: processos, isLoading, error } = useProcessos();
   const { remetentes } = useRemetentes();
+  const [numeroFilter, setNumeroFilter] = useState("");
   const [sortConfig, setSortConfig] = useState<SortConfig>({ field: null, direction: null });
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  useEffect(() => { setCurrentPage(1); }, [sortConfig]);
+  useEffect(() => { setCurrentPage(1); }, [numeroFilter, sortConfig]);
 
   const handleSort = (field: string) => {
     setSortConfig((prev) => {
@@ -44,9 +46,13 @@ const MinhasAnalises = () => {
 
   const minhas = useMemo(() => {
     if (!processos) return [];
-    const list = processos.filter((s) => meusIds.includes(s.id));
+    const list = processos.filter(
+      (s) =>
+        meusIds.includes(s.id) &&
+        (!numeroFilter.trim() || s.numero.toLowerCase().includes(numeroFilter.trim().toLowerCase()))
+    );
     return sortProcessos(list, sortConfig.field, sortConfig.direction, remetentes);
-  }, [processos, meusIds, sortConfig, remetentes]);
+  }, [processos, meusIds, numeroFilter, sortConfig, remetentes]);
 
   const paginatedMinhas = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
@@ -66,6 +72,17 @@ const MinhasAnalises = () => {
   return (
     <AppLayout title="Minhas Análises" subtitle="SEIs que você revisou ou está revisando">
       <div className="bg-card border border-border rounded-xl shadow-card overflow-hidden">
+        <div className="p-4 flex flex-col sm:flex-row gap-3 sm:items-center border-b border-border">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Filtrar por nº SEI..."
+              className="pl-9 text-sm"
+              value={numeroFilter}
+              onChange={(e) => setNumeroFilter(e.target.value)}
+            />
+          </div>
+        </div>
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground bg-secondary/50">

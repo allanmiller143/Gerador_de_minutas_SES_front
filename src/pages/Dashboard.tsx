@@ -8,6 +8,7 @@ import { SortableHeader, sortProcessos, SortConfig } from "@/components/shared/S
 import { TablePagination } from "@/components/shared/TablePagination";
 import { Bot, UserCheck, Send, FileStack, ArrowRight, Eye, Sparkles, FileUp, Loader2, Clock, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useDashboard } from "@/hooks/useDashboard";
 import { useRemetentes } from "@/hooks/useRemetentes";
@@ -40,6 +41,10 @@ const Dashboard = () => {
   const [filterEmRevisao, setFilterEmRevisao] = useState<string[]>([]);
   const [filterRevisados, setFilterRevisados] = useState<string[]>([]);
 
+  const [numeroPre, setNumeroPre] = useState("");
+  const [numeroEmRevisao, setNumeroEmRevisao] = useState("");
+  const [numeroRevisados, setNumeroRevisados] = useState("");
+
   const [sortPre, setSortPre] = useState<SortConfig>({ field: null, direction: null });
   const [sortEmRevisao, setSortEmRevisao] = useState<SortConfig>({ field: null, direction: null });
   const [sortRevisados, setSortRevisados] = useState<SortConfig>({ field: null, direction: null });
@@ -54,9 +59,9 @@ const Dashboard = () => {
   const [pageRevisados, setPageRevisados] = useState(1);
   const [pageSizeRevisados, setPageSizeRevisados] = useState(10);
 
-  useEffect(() => { setPagePre(1); }, [filterPre, sortPre]);
-  useEffect(() => { setPageEmRevisao(1); }, [filterEmRevisao, sortEmRevisao]);
-  useEffect(() => { setPageRevisados(1); }, [filterRevisados, sortRevisados]);
+  useEffect(() => { setPagePre(1); }, [filterPre, numeroPre, sortPre]);
+  useEffect(() => { setPageEmRevisao(1); }, [filterEmRevisao, numeroEmRevisao, sortEmRevisao]);
+  useEffect(() => { setPageRevisados(1); }, [filterRevisados, numeroRevisados, sortRevisados]);
 
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
@@ -75,9 +80,12 @@ const Dashboard = () => {
 
   const preAnalisados = useMemo(() => {
     if (!data) return [];
+    const list = data.filter(
+      (s) => s.status === "Pré-análise" && (!numeroPre.trim() || s.numero.toLowerCase().includes(numeroPre.trim().toLowerCase()))
+    );
     return sortProcessos(
       filterProcessosByRemetentes(
-        data.filter((s) => s.status === "Pré-análise"),
+        list,
         filterPre,
         remetentes
       ),
@@ -85,13 +93,16 @@ const Dashboard = () => {
       sortPre.direction,
       remetentes
     );
-  }, [data, filterPre, remetentes, sortPre]);
+  }, [data, filterPre, numeroPre, remetentes, sortPre]);
 
   const emRevisao = useMemo(() => {
     if (!data) return [];
+    const list = data.filter(
+      (s) => s.status === "Em revisão" && (!numeroEmRevisao.trim() || s.numero.toLowerCase().includes(numeroEmRevisao.trim().toLowerCase()))
+    );
     return sortProcessos(
       filterProcessosByRemetentes(
-        data.filter((s) => s.status === "Em revisão"),
+        list,
         filterEmRevisao,
         remetentes
       ),
@@ -99,13 +110,16 @@ const Dashboard = () => {
       sortEmRevisao.direction,
       remetentes
     );
-  }, [data, filterEmRevisao, remetentes, sortEmRevisao]);
+  }, [data, filterEmRevisao, numeroEmRevisao, remetentes, sortEmRevisao]);
 
   const revisadosHumanos = useMemo(() => {
     if (!data) return [];
+    const list = data.filter(
+      (s) => s.status === "Concluído" && (!numeroRevisados.trim() || s.numero.toLowerCase().includes(numeroRevisados.trim().toLowerCase()))
+    );
     return sortProcessos(
       filterProcessosByRemetentes(
-        data.filter((s) => s.status === "Concluído"),
+        list,
         filterRevisados,
         remetentes
       ),
@@ -113,7 +127,7 @@ const Dashboard = () => {
       sortRevisados.direction,
       remetentes
     );
-  }, [data, filterRevisados, remetentes, sortRevisados]);
+  }, [data, filterRevisados, numeroRevisados, remetentes, sortRevisados]);
 
   const paginatedPre = useMemo(() => {
     const start = (pagePre - 1) * pageSizePre;
@@ -182,7 +196,13 @@ const Dashboard = () => {
             <Bot className="h-4 w-4 text-primary shrink-0" />
             <h2 className="font-semibold text-foreground">Pré-analisados pela IA · aguardando revisão humana</h2>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <Input
+              placeholder="Filtrar por nº SEI..."
+              className="w-56 sm:w-64 h-8 text-xs bg-background"
+              value={numeroPre}
+              onChange={(e) => setNumeroPre(e.target.value)}
+            />
             <MultiSelectRemetenteFilter selected={filterPre} onChange={setFilterPre} remetentes={remetentes} />
             <Link to="/seis" className="text-sm text-primary font-medium hover:underline inline-flex items-center gap-1 shrink-0">
               Ver todos <ArrowRight className="h-3.5 w-3.5" />
@@ -279,7 +299,15 @@ const Dashboard = () => {
             <UserCheck className="h-4 w-4 text-warning shrink-0" />
             <h2 className="font-semibold text-foreground">Em revisão humana</h2>
           </div>
-          <MultiSelectRemetenteFilter selected={filterEmRevisao} onChange={setFilterEmRevisao} remetentes={remetentes} />
+          <div className="flex flex-wrap items-center gap-3">
+            <Input
+              placeholder="Filtrar por nº SEI..."
+              className="w-56 sm:w-64 h-8 text-xs bg-background"
+              value={numeroEmRevisao}
+              onChange={(e) => setNumeroEmRevisao(e.target.value)}
+            />
+            <MultiSelectRemetenteFilter selected={filterEmRevisao} onChange={setFilterEmRevisao} remetentes={remetentes} />
+          </div>
         </header>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -341,7 +369,13 @@ const Dashboard = () => {
             <UserCheck className="h-4 w-4 text-success shrink-0" />
             <h2 className="font-semibold text-foreground">Revisados por humanos recentemente</h2>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <Input
+              placeholder="Filtrar por nº SEI..."
+              className="w-56 sm:w-64 h-8 text-xs bg-background"
+              value={numeroRevisados}
+              onChange={(e) => setNumeroRevisados(e.target.value)}
+            />
             <MultiSelectRemetenteFilter selected={filterRevisados} onChange={setFilterRevisados} remetentes={remetentes} />
             <Link to="/seis" className="text-sm text-primary font-medium hover:underline inline-flex items-center gap-1 shrink-0">
               Ver todos <ArrowRight className="h-3.5 w-3.5" />

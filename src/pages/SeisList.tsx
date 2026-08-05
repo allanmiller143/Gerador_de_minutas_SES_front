@@ -21,6 +21,7 @@ const SeisList = () => {
   const { data: processos, isLoading, error } = useProcessos();
   const { remetentes } = useRemetentes();
   const [q, setQ] = useState("");
+  const [numeroFilter, setNumeroFilter] = useState("");
   const [status, setStatus] = useState<string>("Todos");
   const [selectedRemetentes, setSelectedRemetentes] = useState<string[]>([]);
   const [sortConfig, setSortConfig] = useState<SortConfig>({ field: null, direction: null });
@@ -38,14 +39,15 @@ const SeisList = () => {
   const filtered = useMemo(() => {
     if (!processos) return [];
     const searchFiltered = processos.filter((s) => {
+      const matchNum = !numeroFilter.trim() || s.numero.toLowerCase().includes(numeroFilter.trim().toLowerCase());
       const matchQ = !q || s.numero.toLowerCase().includes(q.toLowerCase()) || s.assunto.toLowerCase().includes(q.toLowerCase());
       const matchS = status === "Todos" || s.status === status;
-      return matchQ && matchS;
+      return matchNum && matchQ && matchS;
     });
 
     const remFiltered = filterProcessosByRemetentes(searchFiltered, selectedRemetentes, remetentes);
     return sortProcessos(remFiltered, sortConfig.field, sortConfig.direction, remetentes);
-  }, [processos, remetentes, q, status, selectedRemetentes, sortConfig]);
+  }, [processos, remetentes, q, numeroFilter, status, selectedRemetentes, sortConfig]);
 
   // Estados da Paginação
   const [currentPage, setCurrentPage] = useState(1);
@@ -62,7 +64,7 @@ const SeisList = () => {
   
   useEffect(() => {
     setCurrentPage(1);
-  }, [q, status, selectedRemetentes, itemsPerPage]);
+  }, [q, numeroFilter, status, selectedRemetentes, itemsPerPage]);
 
   if (error) {
     return <AppLayout title="SEIs" subtitle="Não foi possível carregar os dados do backend." />;
@@ -74,9 +76,15 @@ const SeisList = () => {
         <div className="p-4 flex flex-col md:flex-row gap-3 md:items-center border-b border-border">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar por número ou assunto..." className="pl-9" value={q} onChange={(e) => setQ(e.target.value)} />
+            <Input placeholder="Buscar por assunto ou termo..." className="pl-9" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
+            <Input
+              placeholder="Filtrar por nº SEI..."
+              className="w-full sm:w-72 text-sm"
+              value={numeroFilter}
+              onChange={(e) => setNumeroFilter(e.target.value)}
+            />
             <Select value={status} onValueChange={setStatus}>
               <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Status" /></SelectTrigger>
               <SelectContent>
