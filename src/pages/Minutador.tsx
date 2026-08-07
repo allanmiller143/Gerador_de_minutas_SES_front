@@ -18,6 +18,7 @@ import { domainDataQueryKeys } from "@/services/domainData";
 import ReactMarkdown from "react-markdown";
 import { PromptEditorDialog } from "./Resumo_Minuta/PromptEditorDialog";
 import { getProcessosPollingInterval, isFailedStatus, isProcessingStatus } from "@/lib/processStatus";
+import { ChatProcessoPanel } from "./Resumo_Minuta/ChatProcessoPanel";
 
 const etapas = ["Pré-análise", "Jurisprudências", "Minuta gerada", "Revisão humana"];
 
@@ -579,158 +580,163 @@ const Minutador = () => {
           </Tabs>
         </section>
 
-        <aside className="bg-card border border-border rounded-xl shadow-card p-5 h-fit space-y-6">
-          {sei.arquivoPdf && (
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <FileText className="h-4 w-4 text-primary" />
-                <h3 className="font-semibold text-sm">Documento do Processo</h3>
-              </div>
-              <p className="text-xs text-muted-foreground mb-3">
-                Arquivo PDF original recebido pelo SEI.
-              </p>
-              <div className="p-3 rounded-lg border border-border bg-secondary/15 flex flex-col gap-3">
-                <div className="min-w-0">
-                  <span className="text-sm font-semibold text-foreground break-all" title={sei.arquivoPdf}>
-                    {cleanFilename(sei.arquivoPdf)}
-                  </span>
+        
+        <div className="space-y-6">
+          <ChatProcessoPanel processoId={sei.id} />
+          <aside className="bg-card border border-border rounded-xl shadow-card p-5 h-fit space-y-6">
+            {sei.arquivoPdf && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <FileText className="h-4 w-4 text-primary" />
+                  <h3 className="font-semibold text-sm">Documento do Processo</h3>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDownloadPDF}
-                  disabled={isDownloading}
-                  className="w-full bg-background hover:bg-secondary border-border shadow-sm flex items-center justify-center gap-2"
-                >
-                  <Download className={cn("h-4 w-4", isDownloading && "animate-pulse")} />
-                  {isDownloading ? "Baixando..." : "Baixar PDF Original"}
-                </Button>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Arquivo PDF original recebido pelo SEI.
+                </p>
+                <div className="p-3 rounded-lg border border-border bg-secondary/15 flex flex-col gap-3">
+                  <div className="min-w-0">
+                    <span className="text-sm font-semibold text-foreground break-all" title={sei.arquivoPdf}>
+                      {cleanFilename(sei.arquivoPdf)}
+                    </span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDownloadPDF}
+                    disabled={isDownloading}
+                    className="w-full bg-background hover:bg-secondary border-border shadow-sm flex items-center justify-center gap-2"
+                  >
+                    <Download className={cn("h-4 w-4", isDownloading && "animate-pulse")} />
+                    {isDownloading ? "Baixando..." : "Baixar PDF Original"}
+                  </Button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Evidências clínicas */}
-          {resumoTecnico && (
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <FileText className="h-4 w-4 text-primary" />
-                <h3 className="font-semibold text-sm">Evidências encontradas</h3>
+            {/* Evidências clínicas */}
+            {resumoTecnico && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <FileText className="h-4 w-4 text-primary" />
+                  <h3 className="font-semibold text-sm">Evidências encontradas</h3>
+                </div>
+                <p className="text-xs text-muted-foreground mb-4">
+                  Informações-chave extraídas dos relatórios médicos.
+                </p>
+
+                <div className="space-y-4">
+                  {resumoTecnico?.evidencias_clinicas_do_processo && resumoTecnico.evidencias_clinicas_do_processo.length > 0 && (
+                    <div>
+                      <div className="text-xs font-semibold mb-2 text-primary">Evidências Clínicas</div>
+                      <ul className="space-y-2">
+                        {resumoTecnico.evidencias_clinicas_do_processo.map((item, idx) => (
+                          <li key={idx} className="border border-border/50 rounded-lg p-2 bg-secondary/10 text-xs hover:bg-secondary/20 transition-colors">
+                            <p className="line-clamp-3">{item}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {confronto?.observacoes && confronto.observacoes.length > 0 && (
+                    <div>
+                      <div className="text-xs font-semibold mb-2 text-primary">Observações</div>
+                      <ul className="space-y-2">
+                        {confronto.observacoes.map((item, idx) => (
+                          <li key={idx} className="border border-border/50 rounded-lg p-2 bg-secondary/10 text-xs hover:bg-secondary/20 transition-colors">
+                            <p className="line-clamp-3">{item}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {insumoParecer?.fundamentos && insumoParecer.fundamentos.length > 0 && (
+                    <div>
+                      <div className="text-xs font-semibold mb-2 text-primary">Fundamentos</div>
+                      <ul className="space-y-2">
+                        {insumoParecer.fundamentos.map((item, idx) => (
+                          <li key={idx} className="border border-border/50 rounded-lg p-2 bg-secondary/10 text-xs hover:bg-secondary/20 transition-colors">
+                            <p className="line-clamp-3">{item}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {insumoParecer?.alternativas_orientaveis && insumoParecer.alternativas_orientaveis.length > 0 && (
+                    <div>
+                      <div className="text-xs font-semibold mb-2 text-primary">Alternativas</div>
+                      <ul className="space-y-2">
+                        {insumoParecer.alternativas_orientaveis.map((item, idx) => (
+                          <li key={idx} className="border border-border/50 rounded-lg p-2 bg-secondary/10 text-xs hover:bg-secondary/20 transition-colors">
+                            <p className="line-clamp-3">{item}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {insumoParecer?.pendencias_documentais && insumoParecer.pendencias_documentais.length > 0 && (
+                    <div>
+                      <div className="text-xs font-semibold mb-2 text-destructive">Pendências</div>
+                      <ul className="space-y-2">
+                        {insumoParecer.pendencias_documentais.map((item, idx) => (
+                          <li key={idx} className="border border-destructive/30 rounded-lg p-2 bg-destructive/10 text-xs hover:bg-destructive/20 transition-colors">
+                            <p className="line-clamp-3">{item}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mb-4">
-                Informações-chave extraídas dos relatórios médicos.
-              </p>
+            )}
 
-              <div className="space-y-4">
-                {resumoTecnico?.evidencias_clinicas_do_processo && resumoTecnico.evidencias_clinicas_do_processo.length > 0 && (
-                  <div>
-                    <div className="text-xs font-semibold mb-2 text-primary">Evidências Clínicas</div>
-                    <ul className="space-y-2">
-                      {resumoTecnico.evidencias_clinicas_do_processo.map((item, idx) => (
-                        <li key={idx} className="border border-border/50 rounded-lg p-2 bg-secondary/10 text-xs hover:bg-secondary/20 transition-colors">
-                          <p className="line-clamp-3">{item}</p>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {confronto?.observacoes && confronto.observacoes.length > 0 && (
-                  <div>
-                    <div className="text-xs font-semibold mb-2 text-primary">Observações</div>
-                    <ul className="space-y-2">
-                      {confronto.observacoes.map((item, idx) => (
-                        <li key={idx} className="border border-border/50 rounded-lg p-2 bg-secondary/10 text-xs hover:bg-secondary/20 transition-colors">
-                          <p className="line-clamp-3">{item}</p>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {insumoParecer?.fundamentos && insumoParecer.fundamentos.length > 0 && (
-                  <div>
-                    <div className="text-xs font-semibold mb-2 text-primary">Fundamentos</div>
-                    <ul className="space-y-2">
-                      {insumoParecer.fundamentos.map((item, idx) => (
-                        <li key={idx} className="border border-border/50 rounded-lg p-2 bg-secondary/10 text-xs hover:bg-secondary/20 transition-colors">
-                          <p className="line-clamp-3">{item}</p>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {insumoParecer?.alternativas_orientaveis && insumoParecer.alternativas_orientaveis.length > 0 && (
-                  <div>
-                    <div className="text-xs font-semibold mb-2 text-primary">Alternativas</div>
-                    <ul className="space-y-2">
-                      {insumoParecer.alternativas_orientaveis.map((item, idx) => (
-                        <li key={idx} className="border border-border/50 rounded-lg p-2 bg-secondary/10 text-xs hover:bg-secondary/20 transition-colors">
-                          <p className="line-clamp-3">{item}</p>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {insumoParecer?.pendencias_documentais && insumoParecer.pendencias_documentais.length > 0 && (
-                  <div>
-                    <div className="text-xs font-semibold mb-2 text-destructive">Pendências</div>
-                    <ul className="space-y-2">
-                      {insumoParecer.pendencias_documentais.map((item, idx) => (
-                        <li key={idx} className="border border-destructive/30 rounded-lg p-2 bg-destructive/10 text-xs hover:bg-destructive/20 transition-colors">
-                          <p className="line-clamp-3">{item}</p>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Base de Conhecimento IA */}
-          {documentosIA.length > 0 && (
-            <div className="border-t border-border pt-4">
-              <div className="flex items-center gap-2 mb-3">
-                <FileText className="h-4 w-4 text-primary" />
-                <h3 className="font-semibold text-sm">Base de Conhecimento IA</h3>
-              </div>
-              <p className="text-xs text-muted-foreground mb-4">
-                Documentos e diretrizes técnicas utilizados para fundamentar esta minuta.
-              </p>
-              <ul className="space-y-2">
-                {documentosIA.map((doc, idx) => {
-                  const filename = doc.split("/").pop() || doc;
-                  const isDownloadingThis = downloadingKB === doc;
-                  return (
-                    <li key={idx} className="border border-border rounded-lg p-2.5 bg-primary/5 hover:bg-primary/10 transition-all flex items-center justify-between gap-3">
-                      <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                        <Bot className="h-4 w-4 text-primary/70 shrink-0 mt-0.5" />
-                        <span
-                          className="text-xs font-medium text-foreground truncate block cursor-help"
-                          title={doc}
+            {/* Base de Conhecimento IA */}
+            {documentosIA.length > 0 && (
+              <div className="border-t border-border pt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <FileText className="h-4 w-4 text-primary" />
+                  <h3 className="font-semibold text-sm">Base de Conhecimento IA</h3>
+                </div>
+                <p className="text-xs text-muted-foreground mb-4">
+                  Documentos e diretrizes técnicas utilizados para fundamentar esta minuta.
+                </p>
+                <ul className="space-y-2">
+                  {documentosIA.map((doc, idx) => {
+                    const filename = doc.split("/").pop() || doc;
+                    const isDownloadingThis = downloadingKB === doc;
+                    return (
+                      <li key={idx} className="border border-border rounded-lg p-2.5 bg-primary/5 hover:bg-primary/10 transition-all flex items-center justify-between gap-3">
+                        <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                          <Bot className="h-4 w-4 text-primary/70 shrink-0 mt-0.5" />
+                          <span
+                            className="text-xs font-medium text-foreground truncate block cursor-help"
+                            title={doc}
+                          >
+                            {filename}
+                          </span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDownloadKB(doc)}
+                          disabled={isDownloadingThis}
+                          className="h-7 w-7 shrink-0 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
+                          title={`Baixar ${filename}`}
                         >
-                          {filename}
-                        </span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDownloadKB(doc)}
-                        disabled={isDownloadingThis}
-                        className="h-7 w-7 shrink-0 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
-                        title={`Baixar ${filename}`}
-                      >
-                        <Download className={cn("h-3.5 w-3.5", isDownloadingThis && "animate-pulse")} />
-                      </Button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
-        </aside>
+                          <Download className={cn("h-3.5 w-3.5", isDownloadingThis && "animate-pulse")} />
+                        </Button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+
+          </aside>
+        </div>
       </div>
     </AppLayout>
   );
