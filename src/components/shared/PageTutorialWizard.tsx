@@ -34,7 +34,7 @@ export const PageTutorialWizard: React.FC<PageTutorialWizardProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
-  const [popoverSize, setPopoverSize] = useState({ width: 360, height: 260 });
+  const [popoverSize, setPopoverSize] = useState({ width: 375, height: 220 });
   const [windowSize, setWindowSize] = useState({
     width: typeof window !== "undefined" ? window.innerWidth : 1920,
     height: typeof window !== "undefined" ? window.innerHeight : 1080,
@@ -160,8 +160,8 @@ export const PageTutorialWizard: React.FC<PageTutorialWizardProps> = ({
       };
     }
 
-    const pWidth = popoverSize.width || 360;
-    const pHeight = popoverSize.height || 260;
+    const pWidth = popoverSize.width || 375;
+    const pHeight = popoverSize.height || 220;
     const margin = 16;
     const gap = 16; // clearance from target highlight box
 
@@ -342,26 +342,26 @@ export const PageTutorialWizard: React.FC<PageTutorialWizardProps> = ({
           <div
             ref={popoverRef}
             style={getPopoverStyle()}
-            className="z-50 bg-card border text-card-foreground shadow-2xl rounded-xl p-5 space-y-4 animate-in fade-in zoom-in-95 duration-200"
+            className="z-50 bg-card border text-card-foreground shadow-2xl rounded-xl p-5 space-y-4 w-[375px] max-w-[calc(100vw-32px)] animate-in fade-in zoom-in-95 duration-200"
           >
             {/* Header */}
             <div className="flex items-start justify-between gap-3 border-b pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-lg bg-primary/10 text-primary">
+              <div className="flex items-start gap-3 min-w-0">
+                <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0 mt-0.5">
                   <IconComponent className="h-5 w-5" />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs font-semibold text-primary border-primary/30 bg-primary/5">
+                <div className="min-w-0 space-y-1 text-left">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <Badge variant="outline" className="text-xs px-2 py-0.5 font-semibold text-primary border-primary/30 bg-primary/5">
                       Passo {currentStep + 1} de {steps.length}
                     </Badge>
                     {step.badgeText && (
-                      <Badge variant="secondary" className="text-[10px]">
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
                         {step.badgeText}
                       </Badge>
                     )}
                   </div>
-                  <h3 className="font-bold text-base text-foreground mt-0.5">
+                  <h3 className="font-bold text-base text-foreground leading-snug text-left">
                     {step.title}
                   </h3>
                 </div>
@@ -369,7 +369,7 @@ export const PageTutorialWizard: React.FC<PageTutorialWizardProps> = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 text-muted-foreground hover:text-foreground rounded-full"
+                className="h-7 w-7 text-muted-foreground hover:text-foreground rounded-full shrink-0 -mr-1 -mt-1"
                 onClick={() => setIsOpen(false)}
               >
                 <X className="h-4 w-4" />
@@ -377,9 +377,9 @@ export const PageTutorialWizard: React.FC<PageTutorialWizardProps> = ({
             </div>
 
             {/* Description */}
-            <div className="text-sm text-muted-foreground leading-relaxed">
+            <p className="text-sm text-muted-foreground leading-relaxed text-left">
               {step.description}
-            </div>
+            </p>
 
             {/* Progress Bar */}
             <div className="w-full bg-secondary h-1.5 rounded-full overflow-hidden">
@@ -392,18 +392,20 @@ export const PageTutorialWizard: React.FC<PageTutorialWizardProps> = ({
             </div>
 
             {/* Footer / Controls */}
-            <div className="flex items-center justify-between pt-1">
-              <div className="text-[11px] text-muted-foreground hidden sm:block">
-                Use <kbd className="px-1 py-0.5 bg-muted rounded border text-[10px]">←</kbd> <kbd className="px-1 py-0.5 bg-muted rounded border text-[10px]">→</kbd> para navegar
+            <div className="flex items-center justify-between gap-3 pt-1 text-left">
+              <div className="text-xs text-muted-foreground hidden sm:flex items-center gap-1 shrink-0">
+                <span>Navegar:</span>
+                <kbd className="px-1.5 py-0.5 bg-muted rounded border text-[10px] font-mono">←</kbd>
+                <kbd className="px-1.5 py-0.5 bg-muted rounded border text-[10px] font-mono">→</kbd>
               </div>
 
-              <div className="flex items-center gap-2 ml-auto">
+              <div className="flex items-center gap-2 ml-auto shrink-0">
                 {currentStep > 0 && (
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handlePrev}
-                    className="h-8 text-xs gap-1"
+                    className="h-8 text-xs px-3 gap-1.5"
                   >
                     <ChevronLeft className="h-3.5 w-3.5" />
                     Anterior
@@ -412,7 +414,7 @@ export const PageTutorialWizard: React.FC<PageTutorialWizardProps> = ({
                 <Button
                   size="sm"
                   onClick={handleNext}
-                  className="h-8 text-xs gap-1 font-semibold"
+                  className="h-8 text-xs px-3.5 gap-1.5 font-semibold"
                 >
                   {currentStep === steps.length - 1 ? (
                     <>
