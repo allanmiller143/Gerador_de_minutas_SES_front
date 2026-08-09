@@ -115,7 +115,7 @@ const REMETENTES_TUTORIAL_STEPS: TutorialStep[] = [
     description:
       "Aqui são listados todos os remetentes cadastrados. Cada sigla é exibida com uma tag estilizada com a cor personalizada.",
     icon: UserCheck,
-    position: "top",
+    position: "right",
   },
   {
     target: '[data-tour="action-edit"]',

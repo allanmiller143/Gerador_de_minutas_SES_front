@@ -149,7 +149,7 @@ export const PageTutorialWizard: React.FC<PageTutorialWizardProps> = ({
     }
   };
 
-  // Calculate popover style guaranteeing ZERO overlap with targetBox
+  // Calculate popover style guaranteeing preferred placement relative to targetBox
   const getPopoverStyle = (): React.CSSProperties => {
     if (!targetRect) {
       return {
@@ -179,6 +179,26 @@ export const PageTutorialWizard: React.FC<PageTutorialWizardProps> = ({
     const windowHeight = windowSize.height;
 
     const preferred = step?.position || "bottom";
+
+    // Special handling when step explicitly requests "right" side placement
+    if (preferred === "right") {
+      let left = targetBox.right + gap;
+      let top = Math.max(margin, Math.min(targetBox.top + 20, windowHeight - pHeight - margin));
+
+      // If outside-right overflows screen (e.g. wide container), place anchored to inner-right of targetBox
+      if (left + pWidth > windowWidth - margin) {
+        left = Math.max(margin, targetBox.right - pWidth - 24);
+        top = Math.max(margin, Math.min(targetBox.top + 24, windowHeight - pHeight - margin));
+      }
+
+      return {
+        position: "fixed",
+        top: `${top}px`,
+        left: `${left}px`,
+        width: `${pWidth}px`,
+      };
+    }
+
     const candidates = Array.from(new Set([preferred, "left", "right", "bottom", "top"]));
 
     for (const pos of candidates) {
@@ -194,9 +214,6 @@ export const PageTutorialWizard: React.FC<PageTutorialWizardProps> = ({
       } else if (pos === "left") {
         top = targetBox.top + targetBox.height / 2 - pHeight / 2;
         left = targetBox.left - pWidth - gap;
-      } else if (pos === "right") {
-        top = targetBox.top + targetBox.height / 2 - pHeight / 2;
-        left = targetBox.right + gap;
       }
 
       // Clamp so popover stays fully on screen
