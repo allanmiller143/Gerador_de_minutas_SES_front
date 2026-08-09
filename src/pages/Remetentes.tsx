@@ -41,6 +41,7 @@ import {
   updateRemetente,
   deleteRemetente,
 } from "@/services/remetenteService";
+import { PageTutorialWizard, TutorialStep } from "@/components/shared/PageTutorialWizard";
 
 const getContrastColor = (color: string): string => {
   if (color.startsWith("#") && (color.length === 7 || color.length === 4)) {
@@ -74,6 +75,65 @@ const INITIAL_FORM: RemetenteInput = {
   sigla: "",
   cor: "#3B82F6",
 };
+
+const REMETENTES_TUTORIAL_STEPS: TutorialStep[] = [
+  {
+    target: '[data-tour="remetentes-header"]',
+    title: "Visão Geral de Remetentes",
+    description:
+      "Nesta página você pode visualizar, cadastrar, editar e gerenciar todos os remetentes de processos e documentos oficiais do sistema.",
+    icon: UserCheck,
+    position: "bottom",
+  },
+  {
+    target: '[data-tour="btn-refresh"]',
+    title: "Atualizar Lista",
+    description:
+      "Clique neste botão a qualquer momento para recarregar em tempo real a lista de remetentes a partir do servidor.",
+    icon: RefreshCw,
+    position: "bottom",
+  },
+  {
+    target: '[data-tour="btn-create"]',
+    title: "Cadastrar Novo Remetente",
+    description:
+      "Clique aqui para cadastrar um novo órgão ou remetente. Você definirá o Prefixo (ex: REQ, OF), a Sigla (ex: TJSP), o Nome Completo e uma Cor personalizada para a etiqueta visual.",
+    icon: Plus,
+    position: "left",
+  },
+  {
+    target: '[data-tour="search-input"]',
+    title: "Busca e Filtragem",
+    description:
+      "Utilize este campo para filtrar instantaneamente os remetentes por nome, sigla ou prefixo.",
+    icon: Search,
+    position: "bottom",
+  },
+  {
+    target: '[data-tour="remetentes-table"]',
+    title: "Base de Remetentes",
+    description:
+      "Aqui são listados todos os remetentes cadastrados. Cada sigla é exibida com uma tag estilizada com a cor personalizada.",
+    icon: UserCheck,
+    position: "top",
+  },
+  {
+    target: '[data-tour="action-edit"]',
+    title: "Editar Remetente",
+    description:
+      "No ícone de lápis em cada linha da tabela, você pode alterar as informações do remetente (nome, sigla, prefixo ou cor).",
+    icon: Edit,
+    position: "left",
+  },
+  {
+    target: '[data-tour="action-delete"]',
+    title: "Excluir Remetente",
+    description:
+      "No ícone de lixeira, você pode remover um remetente. O sistema solicitará uma confirmação de segurança antes da exclusão.",
+    icon: Trash2,
+    position: "left",
+  },
+];
 
 export default function Remetentes() {
   const [remetentes, setRemetentes] = useState<Remetente[]>([]);
@@ -198,7 +258,7 @@ export default function Remetentes() {
     <AppLayout title="Remetentes" subtitle="Cadastre e gerencie os remetentes de processos e documentos no sistema">
       <div className="p-6 space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div data-tour="remetentes-header" className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
               <UserCheck className="h-6 w-6 text-primary" />
@@ -209,11 +269,11 @@ export default function Remetentes() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={loadData} disabled={loading}>
+            <Button data-tour="btn-refresh" variant="outline" size="sm" onClick={loadData} disabled={loading}>
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
               Atualizar
             </Button>
-            <Button onClick={handleOpenCreate} size="sm">
+            <Button data-tour="btn-create" onClick={handleOpenCreate} size="sm">
               <Plus className="h-4 w-4 mr-2" />
               Novo Remetente
             </Button>
@@ -221,7 +281,7 @@ export default function Remetentes() {
         </div>
 
         {/* Filters and Card Container */}
-        <Card>
+        <Card data-tour="remetentes-table">
           <CardHeader className="pb-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
@@ -230,7 +290,7 @@ export default function Remetentes() {
                   Total de {remetentes.length} remetente(s) cadastrado(s).
                 </CardDescription>
               </div>
-              <div className="relative w-full sm:w-72">
+              <div data-tour="search-input" className="relative w-full sm:w-72">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="search"
@@ -276,7 +336,7 @@ export default function Remetentes() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredRemetentes.map((remetente) => (
+                    {filteredRemetentes.map((remetente, index) => (
                       <TableRow key={remetente.id}>
                         <TableCell>
                           <Badge variant="outline" className="font-mono">
@@ -297,6 +357,7 @@ export default function Remetentes() {
                         </TableCell>
                         <TableCell className="text-right space-x-1">
                           <Button
+                            data-tour={index === 0 ? "action-edit" : undefined}
                             variant="ghost"
                             size="icon"
                             onClick={() => handleOpenEdit(remetente)}
@@ -305,6 +366,7 @@ export default function Remetentes() {
                             <Edit className="h-4 w-4 text-muted-foreground hover:text-primary" />
                           </Button>
                           <Button
+                            data-tour={index === 0 ? "action-delete" : undefined}
                             variant="ghost"
                             size="icon"
                             onClick={() => setRemetenteToDelete(remetente)}
@@ -465,7 +527,15 @@ export default function Remetentes() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Floating Tutorial Wizard */}
+        <PageTutorialWizard
+          steps={REMETENTES_TUTORIAL_STEPS}
+          tutorialTitle="Tutorial de Remetentes"
+          buttonLabel="Guia da Página"
+        />
       </div>
     </AppLayout>
   );
 }
+
