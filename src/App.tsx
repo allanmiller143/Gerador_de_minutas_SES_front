@@ -18,6 +18,7 @@ import ResumoBatch from "./pages/ResumoBatch.tsx";
 import MinhasAnalises from "./pages/MinhasAnalises.tsx";
 import Remetentes from "./pages/Remetentes.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import KnowledgeBase from "./pages/KnowledgeBase/index.tsx";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,7 @@ const App = () => (
               <Route path="/remetentes" element={<ProtectedRoute><Remetentes /></ProtectedRoute>} />
               <Route path="/jurisprudencias" element={<ProtectedRoute><Jurisprudencias /></ProtectedRoute>} />
               <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
+              <Route path="/knowledge-base" element={<ProtectedRoute><KnowledgeBase /></ProtectedRoute>} />
               <Route path="/configuracoes" element={<ProtectedRoute roles={["administrador"]}><Configuracoes /></ProtectedRoute>} />
               <Route path="/resumo-batch" element={<ProtectedRoute roles={["administrador"]}><ResumoBatch /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />

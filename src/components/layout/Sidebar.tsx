@@ -12,7 +12,9 @@ const items: { to: string; label: string; icon: typeof Home; end?: boolean; role
   { to: "/jurisprudencias", label: "Jurisprudências", icon: Scale },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3, roles: ["administrador"] },
   { to: "/resumo-batch", label: "Rotina de Resumos", icon: Timer, roles: ["administrador"] },
+  { to: "/knowledge-base", label: "Base de Conhecimento", icon: FileText },
   { to: "/configuracoes", label: "Configurações", icon: Settings, roles: ["administrador"] },
+
 ];
 
 export const Sidebar = () => {
