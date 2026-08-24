@@ -1,4 +1,5 @@
-import { Bell, ChevronDown, LogOut, UserCircle2 } from "lucide-react";
+import { useState } from "react";
+import { Bell, ChevronDown, LogOut, UserCircle2, Key } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth, roleLabel } from "@/context/AuthContext";
 import {
@@ -9,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ChangePasswordDialog } from "@/components/shared/ChangePasswordDialog";
 
 interface TopbarProps {
   title: string;
@@ -18,6 +20,7 @@ interface TopbarProps {
 export const Topbar = ({ title, subtitle }: TopbarProps) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -54,12 +57,22 @@ export const Topbar = ({ title, subtitle }: TopbarProps) => {
               <div className="text-xs text-muted-foreground">{user?.email}</div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setChangePasswordOpen(true)}>
+              <Key className="h-4 w-4 mr-2" /> Alterar Senha
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
               <LogOut className="h-4 w-4 mr-2" /> Sair
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        <ChangePasswordDialog
+          open={changePasswordOpen}
+          onOpenChange={setChangePasswordOpen}
+        />
       </div>
     </header>
   );
 };
+

@@ -13,7 +13,8 @@ interface BackendUser {
   id?: number | string;
   username: string;
   email: string;
-  role: "admin" | "analyst" | string;
+  role?: "admin" | "analyst" | string;
+  roles?: string[] | string;
 }
 
 const cards = [
@@ -40,11 +41,21 @@ const Configuracoes = () => {
   const [usuarios, setUsuarios] = useState<BackendUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [userToEdit, setUserToEdit] = useState<BackendUser | null>(null);
   const [userToDelete, setUserToDelete] = useState<BackendUser | null>(null);
   const [creating, setCreating] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   const [form, setForm] = useState({
+    username: "",
+    email: "",
+    password: "",
+    role: "analyst" as "admin" | "analyst",
+  });
+
+  const [editForm, setEditForm] = useState({
     username: "",
     email: "",
     password: "",
@@ -84,7 +95,34 @@ const Configuracoes = () => {
   };
 
   const handleEditUser = (user: BackendUser) => {
-    toast("Funcionalidade de edição ainda não implementada");
+    setUserToEdit(user);
+    const userRole = Array.isArray(user.roles)
+      ? user.roles[0]
+      : user.roles || user.role || "analyst";
+    setEditForm({
+      username: user.username || "",
+      email: user.email || "",
+      password: "",
+      role: (userRole === "admin" ? "admin" : "analyst") as "admin" | "analyst",
+    });
+    setEditOpen(true);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userToEdit || !userToEdit.id) return;
+    setUpdating(true);
+    try {
+      await api(`/users/${userToEdit.id}`, { method: "PUT", body: editForm });
+      toast.success("Usuário atualizado com sucesso");
+      setEditOpen(false);
+      setUserToEdit(null);
+      load();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Erro ao atualizar usuário");
+    } finally {
+      setUpdating(false);
+    }
   };
 
   const handleDeleteUser = async (user: BackendUser) => {
@@ -252,7 +290,7 @@ const Configuracoes = () => {
                   <td className="px-5 py-3 text-muted-foreground">{u.email}</td>
                   <td className="px-5 py-3">
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-accent text-accent-foreground text-xs font-semibold">
-                      {perfilLabel(u.roles)}
+                      {perfilLabel(u.roles ?? u.role ?? [])}
                     </span>
                   </td>
                   <td className="px-5 py-3" align="right">
@@ -260,22 +298,13 @@ const Configuracoes = () => {
                       <Button variant="outline" size="sm" onClick={() => handleEditUser(u)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Dialog
-                        open={!!userToDelete}
-                        onOpenChange={(open) => !open && setUserToDelete(null)}
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => setUserToDelete(u)}
                       >
-                        <DialogTrigger asChild>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => setUserToDelete(u)}
-                          >
-                            <Trash className="h-4 w-4" />
-                          </Button>
-                        </DialogTrigger>
- 
-                      </Dialog>  
-                      
+                        <Trash className="h-4 w-4" />
+                      </Button>
                     </div>
                   </td>
                 </tr>
@@ -283,6 +312,111 @@ const Configuracoes = () => {
             </tbody>
           </table>
         )}
+
+        {/* Dialog de edição de usuário */}
+        <Dialog open={editOpen} onOpenChange={setEditOpen}>
+          <DialogContent className="sm:w-[620px] w-[80%] max-w-[520px]">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-semibold">
+                Editar usuário
+              </DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground">
+                Atualize os dados do usuário "{userToEdit?.username}"
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={handleUpdate} className="space-y-6 mt-4">
+              {/* Usuário */}
+              <div className="space-y-2">
+                <Label htmlFor="edit-username" className="font-medium text-sm">
+                  Usuário
+                </Label>
+                <Input
+                  id="edit-username"
+                  value={editForm.username}
+                  onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
+                  required
+                  className="input-field"
+                />
+              </div>
+
+              {/* E-mail */}
+              <div className="space-y-2">
+                <Label htmlFor="edit-email" className="font-medium text-sm">
+                  E-mail
+                </Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                  required
+                  className="input-field"
+                />
+              </div>
+
+              {/* Senha */}
+              <div className="space-y-2">
+                <Label htmlFor="edit-pass" className="font-medium text-sm">
+                  Nova Senha (opcional)
+                </Label>
+                <Input
+                  id="edit-pass"
+                  type="password"
+                  placeholder="Deixe em branco para manter a senha atual"
+                  value={editForm.password}
+                  onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                  className="input-field password-input"
+                />
+              </div>
+
+              {/* Perfil */}
+              <div className="space-y-2">
+                <Label className="font-medium text-sm">
+                  Perfil
+                </Label>
+                <Select
+                  value={editForm.role}
+                  onValueChange={(v: "admin" | "analyst") => setEditForm({ ...editForm, role: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue>
+                      {editForm.role === 'admin' ? 'Administrador' : 'Analista'}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="analyst">Analista</SelectItem>
+                    <SelectItem value="admin">Administrador</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Rodapé com botão */}
+              <DialogFooter className="gap-2 sm:gap-0">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setEditOpen(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={updating}
+                >
+                  {updating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : (
+                    "Salvar alterações"
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         {/* Dialog de confirmação de exclusão */}
         <Dialog
@@ -312,6 +446,7 @@ const Configuracoes = () => {
 
               <Button
                 variant="destructive"
+                disabled={deleting}
                 onClick={() => {
                   if (userToDelete) {
                     handleDeleteUser(userToDelete);
@@ -320,7 +455,14 @@ const Configuracoes = () => {
                   setUserToDelete(null);
                 }}
               >
-                Confirmar
+                {deleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Excluindo...
+                  </>
+                ) : (
+                  "Confirmar"
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -332,3 +474,4 @@ const Configuracoes = () => {
 };
 
 export default Configuracoes;
+
