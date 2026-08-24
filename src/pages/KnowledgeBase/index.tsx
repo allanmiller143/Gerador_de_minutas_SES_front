@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MetricCard } from "@/components/shared/MetricCard";
-import {Clock,TrendingUp,FileStack,Upload,Search,Download,Pencil,Trash2,FileText,Loader2,X,Eye,} from "lucide-react";
+import { TablePagination } from "@/components/shared/TablePagination";
+import {Clock,TrendingUp,FileStack,Upload,Search,Download,Pencil,Trash2,FileText,Loader2,X,Eye,BookOpen} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +13,7 @@ import {AlertDialog,AlertDialogAction,AlertDialogCancel,AlertDialogContent,Alert
 import { Skeleton } from "@/components/ui/skeleton";
 import { api, ApiError, downloadKnowledgeBaseFile } from "@/lib/api";
 import { toast } from "sonner";
+import { PageTutorialWizard, TutorialStep } from "@/components/shared/PageTutorialWizard";
 
 interface KnowledgeDoc {
   id: number;
@@ -26,13 +28,47 @@ interface KnowledgeDoc {
   created_at?: string;
 }
 
-
 const CATEGORIAS = [
   "Protocolo Clínico",
   "Nota Técnica",
   "Diretriz Terapêutica",
   "Jurisprudência",
   "Outro",
+];
+
+const KNOWLEDGE_BASE_TUTORIAL_STEPS: TutorialStep[] = [
+  {
+    target: '[data-tour="kb-metrics"]',
+    title: "Indicadores da Base de Conhecimento",
+    description:
+      "Veja as métricas gerais: quantidade total de documentos cadastrados, novos arquivos adicionados nos últimos 30 dias e a categoria mais frequente.",
+    icon: BookOpen,
+    position: "bottom",
+  },
+  {
+    target: '[data-tour="kb-search-filters"]',
+    title: "Busca e Filtragem por Categoria",
+    description:
+      "Pesquise documentos por título, descrição ou nome de arquivo, ou filtre a exibição selecionando categorias como Nota Técnica, Protocolo Clínico e Diretriz Terapêutica.",
+    icon: Search,
+    position: "bottom",
+  },
+  {
+    target: '[data-tour="kb-btn-upload"]',
+    title: "Cadastrar Novo Documento PDF",
+    description:
+      "Clique em 'Novo documento' para fazer upload de diretrizes ou normas técnicas em PDF, definindo título, categoria e descrição.",
+    icon: Upload,
+    position: "left",
+  },
+  {
+    target: '[data-tour="kb-docs-list"]',
+    title: "Listagem de Documentos e Ações",
+    description:
+      "Consulte os detalhes de cada arquivo, faça o download do PDF original, edite as informações cadastradas ou remova documentos da base.",
+    icon: FileText,
+    position: "top",
+  },
 ];
 
 const formatFileSize = (bytes?: number) => {
@@ -46,6 +82,22 @@ const KnowledgeBase = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState("Todos");
+
+  // Estados da Paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  const paginatedDocs = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return docs.slice(startIndex, endIndex);
+  }, [docs, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(docs.length / itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, categoriaFiltro, itemsPerPage]);
 
   // Upload
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -233,7 +285,7 @@ const KnowledgeBase = () => {
       subtitle="Aqui você encontra a base de conhecimento da análise de SEIs."
     >
       {/* Ajuste os props de MetricCard conforme a assinatura real do componente */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div data-tour="kb-metrics" className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <MetricCard
           icon={FileStack}
           label="Total de documentos"
@@ -253,7 +305,7 @@ const KnowledgeBase = () => {
 
       <div className="bg-card border border-border rounded-xl shadow-card p-5">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-5">
-          <div className="flex flex-col sm:flex-row gap-2 flex-1">
+          <div data-tour="kb-search-filters" className="flex flex-col sm:flex-row gap-2 flex-1">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -287,7 +339,7 @@ const KnowledgeBase = () => {
             }}
           >
             <DialogTrigger asChild>
-              <Button size="sm">
+              <Button data-tour="kb-btn-upload" size="sm">
                 <Upload className="h-4 w-4 mr-2" />
                 Novo documento
               </Button>
@@ -376,8 +428,8 @@ const KnowledgeBase = () => {
             {search || categoriaFiltro !== "Todos" ? " para esse filtro." : "."}
           </div>
         ) : (
-          <div className="space-y-2">
-            {docs.map((doc) => (
+          <div data-tour="kb-docs-list" className="space-y-2">
+            {paginatedDocs.map((doc) => (
               <div
                 key={doc.id}
                 className="flex items-start justify-between gap-3 rounded-lg border border-border bg-secondary/10 p-3 hover:bg-secondary/20 transition-colors"
@@ -473,6 +525,20 @@ const KnowledgeBase = () => {
             ))}
           </div>
         )}
+
+        {/* Rodapé da Paginação */}
+        {!isLoading && docs.length > 0 && (
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={docs.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={setItemsPerPage}
+            pageSizeOptions={[10, 25, 50]}
+            className="-mx-5 -mb-5 mt-5 rounded-b-xl"
+          />
+        )}
       </div>
 
       {/* Dialog de edição */}
@@ -530,6 +596,13 @@ const KnowledgeBase = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Floating Tutorial Wizard */}
+      <PageTutorialWizard
+        steps={KNOWLEDGE_BASE_TUTORIAL_STEPS}
+        tutorialTitle="Tutorial da Base de Conhecimento"
+        buttonLabel="Guia da Página"
+      />
     </AppLayout>
   );
 };

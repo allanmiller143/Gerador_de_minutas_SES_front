@@ -12,7 +12,7 @@ import {
   useRunResumoBatch,
   useUpdateResumoBatchConfig,
 } from "@/services/domainData";
-import { Loader2, Play, Save, Square } from "lucide-react";
+import { Loader2, Play, Save, Square, Timer, Clock, Terminal } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -22,6 +22,42 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { PageTutorialWizard, TutorialStep } from "@/components/shared/PageTutorialWizard";
+
+const RESUMO_BATCH_TUTORIAL_STEPS: TutorialStep[] = [
+  {
+    target: '[data-tour="batch-schedule-card"]',
+    title: "Rotina de Geração de Resumos (Batch)",
+    description:
+      "Nesta página os administradores configuram e monitoram o loteamento automático de leitura e resumo com inteligência artificial para múltiplos processos SEI.",
+    icon: Timer,
+    position: "bottom",
+  },
+  {
+    target: '[data-tour="batch-controls"]',
+    title: "Agendamento Recorrente",
+    description:
+      "Ative ou suspenda a execução diária automática e escolha o horário programado (ex: 03:00) para ler os processos sem impactar o uso do sistema durante o expediente.",
+    icon: Clock,
+    position: "bottom",
+  },
+  {
+    target: '[data-tour="batch-actions"]',
+    title: "Salvar Agenda & Executar Agora",
+    description:
+      "Clique em 'Salvar agenda' para atualizar a programação diária ou em 'Iniciar nova execução' para rodar o loteamento imediatamente em segundo plano.",
+    icon: Play,
+    position: "left",
+  },
+  {
+    target: '[data-tour="batch-history"]',
+    title: "Histórico e Console em Tempo Real",
+    description:
+      "Acompanhe as execuções recentes, duração, quantidade de resumos gerados e o console de logs em tempo real durante a execução do batch.",
+    icon: Terminal,
+    position: "top",
+  },
+];
 
 const formatDateTime = (value?: string) => (value ? new Date(value).toLocaleString("pt-BR") : "—");
 const formatLogTime = (value?: string) => (value ? new Date(value).toLocaleTimeString("pt-BR") : "--:--:--");
@@ -84,7 +120,7 @@ export default function ResumoBatch() {
 
   return (
     <AppLayout title="Rotina de geração de resumos" subtitle="Agendamento, suspensão, execução manual e histórico do batch online">
-      <section className="bg-card border border-border rounded-xl shadow-card p-6 mb-6 space-y-4">
+      <section data-tour="batch-schedule-card" className="bg-card border border-border rounded-xl shadow-card p-6 mb-6 space-y-4">
         <div className="flex items-center justify-between gap-4">
           <div>
             <h2 className="font-semibold">Agenda recorrente</h2>
@@ -95,7 +131,7 @@ export default function ResumoBatch() {
           {loadingConfig && <Loader2 className="h-4 w-4 animate-spin" />}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+        <div data-tour="batch-controls" className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
           <div className="space-y-2">
             <Label htmlFor="batch-enabled">Execução automática</Label>
             <div className="flex items-center gap-3 h-10">
@@ -107,7 +143,7 @@ export default function ResumoBatch() {
             <Label htmlFor="batch-time">Horário diário</Label>
             <Input id="batch-time" type="time" value={time} onChange={(event) => setTime(event.target.value)}disabled={!enabled}/>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div data-tour="batch-actions" className="flex flex-wrap gap-2">
             <Button onClick={() => setShowConfirm(true)} disabled={updateConfig.isPending || !hasScheduleChanges}>
               {updateConfig.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
               Salvar agenda
@@ -132,7 +168,7 @@ export default function ResumoBatch() {
         )}
       </section>
 
-      <section className="bg-card border border-border rounded-xl shadow-card overflow-hidden">
+      <section data-tour="batch-history" className="bg-card border border-border rounded-xl shadow-card overflow-hidden">
         <header className="px-5 py-4 border-b border-border">
           <h2 className="font-semibold">Histórico de execuções</h2>
           <p className="text-sm text-muted-foreground">Status, disparador, duração e SEIs contemplados.</p>
@@ -210,6 +246,13 @@ export default function ResumoBatch() {
     </DialogContent>
   </Dialog>
 
+      {/* Floating Tutorial Wizard */}
+      <PageTutorialWizard
+        steps={RESUMO_BATCH_TUTORIAL_STEPS}
+        tutorialTitle="Tutorial da Rotina de Resumos"
+        buttonLabel="Guia da Página"
+      />
     </AppLayout>
   );
 }
+

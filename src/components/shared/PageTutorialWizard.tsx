@@ -65,16 +65,19 @@ export const PageTutorialWizard: React.FC<PageTutorialWizardProps> = ({
       return;
     }
 
-    // Scroll into view if not visible in viewport
+    // Scroll into view if not visible in viewport (ensuring headroom for top-positioned popovers)
     const initialRect = el.getBoundingClientRect();
+    const isTopPosition = step?.position === "top";
+    const minTopMargin = isTopPosition ? 240 : 0;
+
     const isVisible =
-      initialRect.top >= 0 &&
+      initialRect.top >= minTopMargin &&
       initialRect.bottom <= window.innerHeight &&
       initialRect.left >= 0 &&
       initialRect.right <= window.innerWidth;
 
     if (!isVisible) {
-      el.scrollIntoView({ behavior: "auto", block: "nearest" });
+      el.scrollIntoView({ behavior: "smooth", block: isTopPosition ? "center" : "nearest" });
     }
 
     let animationFrameId: number;
@@ -179,6 +182,27 @@ export const PageTutorialWizard: React.FC<PageTutorialWizardProps> = ({
     const windowHeight = windowSize.height;
 
     const preferred = step?.position || "bottom";
+
+    // Special handling when step explicitly requests "top" placement
+    if (preferred === "top") {
+      let top = targetBox.top - pHeight - gap;
+      let left = Math.max(
+        margin,
+        Math.min(targetBox.left + targetBox.width / 2 - pWidth / 2, windowWidth - pWidth - margin)
+      );
+
+      // Keep at top margin of screen if target is near top of viewport
+      if (top < margin) {
+        top = margin;
+      }
+
+      return {
+        position: "fixed",
+        top: `${top}px`,
+        left: `${left}px`,
+        width: `${pWidth}px`,
+      };
+    }
 
     // Special handling when step explicitly requests "right" side placement
     if (preferred === "right") {

@@ -9,13 +9,57 @@ import { type SeiStatus } from "@/data/mock";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Loader2, ChevronLeft, ChevronRight, FileText, Filter, Table, Pencil } from "lucide-react";
 import { useProcessos } from "@/hooks/useProcessos";
 import { useRemetentes } from "@/hooks/useRemetentes";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isProcessingStatus } from "@/lib/processStatus";
+import { PageTutorialWizard, TutorialStep } from "@/components/shared/PageTutorialWizard";
 
 const statusOptions: (SeiStatus | "Todos")[] = ["Todos", "Pré-análise", "Em revisão", "Concluído"];
+
+const SEIS_LIST_TUTORIAL_STEPS: TutorialStep[] = [
+  {
+    target: '[data-tour="seis-card"]',
+    title: "Lista Geral de Processos SEI",
+    description:
+      "Nesta página você visualiza a relação completa de todos os processos SEI cadastrados no sistema, com opções avançadas de busca, filtragem e acesso direto às análises.",
+    icon: FileText,
+    position: "bottom",
+  },
+  {
+    target: '[data-tour="search-terms"]',
+    title: "Busca por Assunto ou Termo",
+    description:
+      "Digite qualquer palavra-chave ou termo referente ao assunto do processo para encontrar minutas e documentos correspondentes.",
+    icon: Search,
+    position: "bottom",
+  },
+  {
+    target: '[data-tour="filter-controls"]',
+    title: "Filtros de SEI, Status e Remetente",
+    description:
+      "Refine a listagem combinando o número exato do SEI, a situação atual do processo (Pré-análise, Em revisão, Concluído) e etiquetas de órgãos remetentes.",
+    icon: Filter,
+    position: "bottom",
+  },
+  {
+    target: '[data-tour="seis-table"]',
+    title: "Tabela de Processos",
+    description:
+      "Confira número do SEI, etiqueta de remetente, assunto, data de recebimento, prioridade e status. Clique nos cabeçalhos de coluna para ordenar a lista.",
+    icon: Table,
+    position: "top",
+  },
+  {
+    target: '[data-tour="action-sei"]',
+    title: "Ações e Acesso ao Minutador",
+    description:
+      "Clique em 'Detalhes' para visualizar a ficha do processo ou em 'Analisar' / 'Continuar' para abrir a minuta no editor Minutador.",
+    icon: Pencil,
+    position: "left",
+  },
+];
 
 const SeisList = () => {
   const { data: processos, isLoading, error } = useProcessos();
@@ -72,13 +116,13 @@ const SeisList = () => {
 
   return (
     <AppLayout title="SEIs" subtitle="Processos SEI cadastrados no sistema">
-      <div className="bg-card border border-border rounded-xl shadow-card overflow-hidden">
+      <div data-tour="seis-card" className="bg-card border border-border rounded-xl shadow-card overflow-hidden">
         <div className="p-4 flex flex-col md:flex-row gap-3 md:items-center border-b border-border">
-          <div className="relative flex-1">
+          <div data-tour="search-terms" className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Buscar por assunto ou termo..." className="pl-9" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div data-tour="filter-controls" className="flex flex-col sm:flex-row gap-3">
             <Input
               placeholder="Filtrar por nº SEI..."
               className="w-full sm:w-72 text-sm"
@@ -101,7 +145,7 @@ const SeisList = () => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table data-tour="seis-table" className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground bg-secondary/50">
                 <SortableHeader field="numero" currentSort={sortConfig} onSort={handleSort} className="whitespace-nowrap">SEI</SortableHeader>
@@ -125,7 +169,7 @@ const SeisList = () => {
                   </tr>
                 ))
               ) :
-                paginatedProcessos.map((s) => (
+                paginatedProcessos.map((s, index) => (
                   <tr key={s.id} className="border-t border-border hover:bg-secondary/40">
                     <td className="px-5 py-3 font-mono text-xs whitespace-nowrap">
                       <div className="flex items-center gap-2">
@@ -137,7 +181,10 @@ const SeisList = () => {
                     <td className="px-5 py-3 text-muted-foreground whitespace-nowrap">{s.dataRecebimento}</td>
                     <td className="px-5 py-3 whitespace-nowrap"><PriorityBadge value={s.prioridade} /></td>
                     <td className="px-5 py-3 whitespace-nowrap"><StatusBadge value={s.status} /></td>
-                    <td className="px-5 py-3 text-right space-x-2">
+                    <td
+                      data-tour={index === 0 ? "action-sei" : undefined}
+                      className="px-5 py-3 text-right space-x-2"
+                    >
                       <Button asChild size="sm" variant="ghost"><Link to={`/seis/${s.id}`}>Detalhes</Link></Button>
                       {s.status !== "Concluído" && (
                         isProcessingStatus(s.status_processamento) ? (
@@ -175,8 +222,16 @@ const SeisList = () => {
           />
         )}
       </div>
+
+      {/* Floating Tutorial Wizard */}
+      <PageTutorialWizard
+        steps={SEIS_LIST_TUTORIAL_STEPS}
+        tutorialTitle="Tutorial de Processos SEI"
+        buttonLabel="Guia da Página"
+      />
     </AppLayout>
   );
 };
 
 export default SeisList;
+

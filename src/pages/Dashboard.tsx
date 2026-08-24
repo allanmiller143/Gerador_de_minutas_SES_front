@@ -6,7 +6,7 @@ import { PriorityBadge, StatusBadge, OriginBadge, RemetenteBadge } from "@/compo
 import { MultiSelectRemetenteFilter, filterProcessosByRemetentes } from "@/components/shared/MultiSelectRemetenteFilter";
 import { SortableHeader, sortProcessos, SortConfig } from "@/components/shared/SortableHeader";
 import { TablePagination } from "@/components/shared/TablePagination";
-import { Bot, UserCheck, Send, FileStack, ArrowRight, Eye, Sparkles, FileUp, Loader2, Clock, Info } from "lucide-react";
+import { Bot, UserCheck, Send, FileStack, ArrowRight, Eye, Sparkles, FileUp, Loader2, Clock, Info, BarChart3, Pencil, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -15,6 +15,58 @@ import { useRemetentes } from "@/hooks/useRemetentes";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UploadDraftModal } from "@/components/shared/UploadDraftModal";
 import { isFailedStatus, isProcessingStatus } from "@/lib/processStatus";
+import { PageTutorialWizard, TutorialStep } from "@/components/shared/PageTutorialWizard";
+
+const DASHBOARD_TUTORIAL_STEPS: TutorialStep[] = [
+  {
+    target: '[data-tour="dashboard-hero"]',
+    title: "Visão Geral e Fluxo",
+    description:
+      "Bem-vindo ao Dashboard! Aqui você acompanha o fluxo automatizado dos processos: pré-análise com IA, revisão humana e envio final. Use o botão 'Upload PDF' para analisar um novo documento.",
+    icon: Sparkles,
+    position: "bottom",
+  },
+  {
+    target: '[data-tour="dashboard-metrics"]',
+    title: "Métricas Globais",
+    description:
+      "Acompanhe os principais indicadores em tempo real: quantidade de processos pré-analisados pela IA, em revisão humana, concluídos e total geral.",
+    icon: BarChart3,
+    position: "bottom",
+  },
+  {
+    target: '[data-tour="table-pre-analise"]',
+    title: "Pré-analisados pela IA",
+    description:
+      "Esta tabela lista os processos que foram processados automaticamente pela inteligência artificial com seu índice de confiança e aguardam a validação de um analista.",
+    icon: Bot,
+    position: "top",
+  },
+  {
+    target: '[data-tour="btn-revisar"]',
+    title: "Iniciar Revisão",
+    description:
+      "Clique em 'Revisar' para abrir a minuta no editor Minutador, onde você poderá conferir o resumo da IA e realizar os ajustes necessários.",
+    icon: Pencil,
+    position: "left",
+  },
+  {
+    target: '[data-tour="table-em-revisao"]',
+    title: "Em Revisão Humana",
+    description:
+      "Acompanhe os processos cujas revisões foram iniciadas por analistas e estão atualmente em andamento.",
+    icon: UserCheck,
+    position: "top",
+  },
+  {
+    target: '[data-tour="table-revisados"]',
+    title: "Revisados por Humanos Recentemente",
+    description:
+      "Nesta seção você pode consultar todos os processos cujas minutas já foram revisadas e salvas pelos analistas, permitindo visualizar os detalhes a qualquer momento.",
+    icon: CheckCircle2,
+    position: "top",
+  },
+];
 
 // Componente auxiliar para truncar o assunto e mostrar o ícone de (i) -> ( texto truncado + ... + (i) )
 const AssuntoCell = ({ texto }: { texto: string }) => {
@@ -163,7 +215,7 @@ const Dashboard = () => {
 
   return (
     <AppLayout title="Dashboard" subtitle="Visão geral da análise de processos">
-      <div className="mb-6 rounded-xl border border-border bg-gradient-to-r from-accent/60 to-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div data-tour="dashboard-hero" className="mb-6 rounded-xl border border-border bg-gradient-to-r from-accent/60 to-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-start gap-3">
           <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
             <Sparkles className="h-4 w-4 text-primary" />
@@ -182,7 +234,7 @@ const Dashboard = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div data-tour="dashboard-metrics" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <MetricCard label="Pré-analisados pela IA" value={metrics.preAnalisadosIA} hint="Aguardando revisão humana" icon={Bot} tone="info" />
         <MetricCard label="Em revisão humana" value={metrics.emRevisaoHumana} hint="Revisão em andamento" tone="warning" icon={UserCheck} />
         <MetricCard label="Concluídos" value={metrics.concluidos} hint="Análises finalizadas" icon={Send} tone="success" />
@@ -190,7 +242,7 @@ const Dashboard = () => {
       </div>
 
       {/* SEIs pré-analisados pela IA */}
-      <section className="bg-card border border-border rounded-xl shadow-card mb-6 overflow-hidden">
+      <section data-tour="table-pre-analise" className="bg-card border border-border rounded-xl shadow-card mb-6 overflow-hidden">
         <header className="px-5 py-3 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-accent/40">
           <div className="flex items-center gap-2">
             <Bot className="h-4 w-4 text-primary shrink-0" />
@@ -222,7 +274,7 @@ const Dashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {paginatedPre.map((s) => (
+              {paginatedPre.map((s, index) => (
                 <tr key={s.id} className="border-t border-border hover:bg-secondary/40 transition-colors">
                   <td className="px-5 py-3 font-mono text-xs">
                     <div className="flex items-center gap-2">
@@ -268,7 +320,11 @@ const Dashboard = () => {
                         <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Analisando
                       </Button>
                     ) : (
-                      <Button asChild size="sm">
+                      <Button
+                        asChild
+                        size="sm"
+                        data-tour={index === 0 ? "btn-revisar" : undefined}
+                      >
                         <Link to={`/minutador/${s.id}`}>Revisar</Link>
                       </Button>
                     )}
@@ -293,7 +349,7 @@ const Dashboard = () => {
       </section>
 
       {/* Em revisão humana */}
-      <section className="bg-card border border-border rounded-xl shadow-card mb-6 overflow-hidden">
+      <section data-tour="table-em-revisao" className="bg-card border border-border rounded-xl shadow-card mb-6 overflow-hidden">
         <header className="px-5 py-3 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-accent/40">
           <div className="flex items-center gap-2">
             <UserCheck className="h-4 w-4 text-warning shrink-0" />
@@ -363,7 +419,7 @@ const Dashboard = () => {
       </section>
 
       {/* Finalizados por humanos */}
-      <section className="bg-card border border-border rounded-xl shadow-card overflow-hidden">
+      <section data-tour="table-revisados" className="bg-card border border-border rounded-xl shadow-card overflow-hidden">
         <header className="px-5 py-3 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <UserCheck className="h-4 w-4 text-success shrink-0" />
@@ -439,6 +495,13 @@ const Dashboard = () => {
       <UploadDraftModal
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
+      />
+
+      {/* Floating Tutorial Wizard */}
+      <PageTutorialWizard
+        steps={DASHBOARD_TUTORIAL_STEPS}
+        tutorialTitle="Tutorial do Dashboard"
+        buttonLabel="Guia da Página"
       />
     </AppLayout>
   );
