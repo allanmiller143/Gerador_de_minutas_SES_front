@@ -11,7 +11,6 @@ import Login from "./pages/Login.tsx";
 import SeisList from "./pages/SeisList.tsx";
 import SeiDetail from "./pages/SeiDetail.tsx";
 import Minutador from "./pages/Minutador.tsx";
-import Jurisprudencias from "./pages/Jurisprudencias.tsx";
 import Relatorios from "./pages/Relatorios.tsx";
 import Configuracoes from "./pages/Configuracoes.tsx";
 import ResumoBatch from "./pages/ResumoBatch.tsx";
@@ -38,7 +37,6 @@ const App = () => (
               <Route path="/minutador/:id" element={<ProtectedRoute><Minutador /></ProtectedRoute>} />
               <Route path="/minhas-analises" element={<ProtectedRoute><MinhasAnalises /></ProtectedRoute>} />
               <Route path="/remetentes" element={<ProtectedRoute><Remetentes /></ProtectedRoute>} />
-              <Route path="/jurisprudencias" element={<ProtectedRoute><Jurisprudencias /></ProtectedRoute>} />
               <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
               <Route path="/knowledge-base" element={<ProtectedRoute><KnowledgeBase /></ProtectedRoute>} />
               <Route path="/configuracoes" element={<ProtectedRoute roles={["administrador"]}><Configuracoes /></ProtectedRoute>} />
