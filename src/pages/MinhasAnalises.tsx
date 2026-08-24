@@ -7,12 +7,48 @@ import { SortableHeader, sortProcessos, SortConfig } from "@/components/shared/S
 import { TablePagination } from "@/components/shared/TablePagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Pencil, Eye, Lock, Search } from "lucide-react";
+import { Pencil, Eye, Lock, Search, FileText, Table } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useDrafts } from "@/context/DraftsContext";
 import { useProcessos } from "@/hooks/useProcessos";
 import { useRemetentes } from "@/hooks/useRemetentes";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageTutorialWizard, TutorialStep } from "@/components/shared/PageTutorialWizard";
+
+const MINHAS_ANALISES_TUTORIAL_STEPS: TutorialStep[] = [
+  {
+    target: '[data-tour="minhas-analises-card"]',
+    title: "Minhas Análises",
+    description:
+      "Nesta página você encontra a lista de todos os processos SEI cujos rascunhos de minutas ou análises foram iniciados ou concluídos por você.",
+    icon: FileText,
+    position: "bottom",
+  },
+  {
+    target: '[data-tour="search-input"]',
+    title: "Filtrar por Nº SEI",
+    description:
+      "Digite o número do processo SEI nesta caixa de busca para filtrar rapidamente suas análises em tempo real.",
+    icon: Search,
+    position: "bottom",
+  },
+  {
+    target: '[data-tour="analises-table"]',
+    title: "Tabela de Análises",
+    description:
+      "Visualize informações essenciais: número do SEI, etiqueta de remetente, assunto, prioridade e a situação (Em revisão ou Concluído). Clique nos cabeçalhos para ordenar a lista.",
+    icon: Table,
+    position: "top",
+  },
+  {
+    target: '[data-tour="action-analise"]',
+    title: "Ações do Processo",
+    description:
+      "Clique no botão 'Editar' para retomar a elaboração da minuta no Minutador, ou 'Visualizar' para conferir uma análise que já foi concluída.",
+    icon: Pencil,
+    position: "left",
+  },
+];
 
 const MinhasAnalises = () => {
   const { user } = useAuth();
@@ -71,9 +107,9 @@ const MinhasAnalises = () => {
 
   return (
     <AppLayout title="Minhas Análises" subtitle="SEIs que você revisou ou está revisando">
-      <div className="bg-card border border-border rounded-xl shadow-card overflow-hidden">
+      <div data-tour="minhas-analises-card" className="bg-card border border-border rounded-xl shadow-card overflow-hidden">
         <div className="p-4 flex flex-col sm:flex-row gap-3 sm:items-center border-b border-border">
-          <div className="relative flex-1 max-w-sm">
+          <div data-tour="search-input" className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Filtrar por nº SEI..."
@@ -83,7 +119,7 @@ const MinhasAnalises = () => {
             />
           </div>
         </div>
-        <table className="w-full text-sm">
+        <table data-tour="analises-table" className="w-full text-sm">
           <thead>
             <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground bg-secondary/50">
               <SortableHeader field="numero" currentSort={sortConfig} onSort={handleSort}>SEI</SortableHeader>
@@ -105,7 +141,7 @@ const MinhasAnalises = () => {
                 </tr>
               ))
             ) : (
-              paginatedMinhas.map((s) => {
+              paginatedMinhas.map((s, index) => {
                 const draft = drafts[s.id];
                 const finalized = draft?.status === "Concluído";
                 return (
@@ -121,7 +157,10 @@ const MinhasAnalises = () => {
                     <td className="px-5 py-3">
                       <StatusBadge value={finalized ? "Concluído" : "Em revisão"} />
                     </td>
-                    <td className="px-5 py-3 text-right">
+                    <td
+                      data-tour={index === 0 ? "action-analise" : undefined}
+                      className="px-5 py-3 text-right"
+                    >
                       <Button asChild size="sm" variant={finalized ? "ghost" : "default"}>
                         <Link to={`/minutador/${s.id}`}>
                           {finalized ? (
@@ -158,8 +197,16 @@ const MinhasAnalises = () => {
           />
         )}
       </div>
+
+      {/* Floating Tutorial Wizard */}
+      <PageTutorialWizard
+        steps={MINHAS_ANALISES_TUTORIAL_STEPS}
+        tutorialTitle="Tutorial - Minhas Análises"
+        buttonLabel="Guia da Página"
+      />
     </AppLayout>
   );
 };
 
 export default MinhasAnalises;
+
