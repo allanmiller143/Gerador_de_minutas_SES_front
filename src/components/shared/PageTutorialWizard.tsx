@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   Sparkles,
   LucideIcon,
+  Wand2,
 } from "lucide-react";
 
 export interface TutorialStep {
@@ -296,20 +297,25 @@ export const PageTutorialWizard: React.FC<PageTutorialWizardProps> = ({
 
   return (
     <>
-      {/* Floating Action Button at Bottom-Right */}
-      <div className="fixed bottom-6 right-6 z-40 group flex items-center gap-2">
+      {/* Floating Action Button at Bottom-Right - Compact with Hover Expand */}
+      <div className="fixed bottom-6 right-6 z-40">
         <Button
           onClick={handleStart}
-          size="lg"
-          className="relative rounded-full px-5 py-6 shadow-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold flex items-center gap-2.5 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-primary/20 ring-4 ring-primary/10 active:scale-95"
+          size="sm"
+          className="group relative h-11 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold flex items-center shadow-lg hover:shadow-2xl hover:shadow-primary/25 ring-4 ring-primary/10 transition-all duration-300 ease-in-out overflow-hidden px-3 hover:px-4 active:scale-95"
           title="Iniciar tutorial explicativo da página"
         >
-          <span className="relative flex h-3 w-3">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-foreground opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-primary-foreground"></span>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-foreground opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary-foreground"></span>
+            </span>
+            <Wand2 className="h-5 w-5 shrink-0" />
+          </div>
+
+          <span className="max-w-0 opacity-0 group-hover:max-w-xs group-hover:opacity-100 group-hover:ml-2.5 transition-all duration-300 ease-in-out whitespace-nowrap text-xs font-medium tracking-wide">
+            {buttonLabel}
           </span>
-          <HelpCircle className="h-5 w-5" />
-          <span className="text-sm tracking-wide">{buttonLabel}</span>
         </Button>
       </div>
 

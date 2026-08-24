@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription,} from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select";
-import { Plus, Shield, Users, FileText, Scale, Loader2, Trash, Edit } from "lucide-react";
+import { Plus, Shield, Users, FileText, Scale, Loader2, Trash, Edit, Settings, UserPlus } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { toast } from "sonner";
+import { PageTutorialWizard, TutorialStep } from "@/components/shared/PageTutorialWizard";
 
 interface BackendUser {
   id?: number | string;
@@ -22,6 +23,41 @@ const cards = [
   { icon: Shield, title: "Controle de acesso", desc: "Defina permissões por perfil (LGPD)." },
   { icon: FileText, title: "Modelos de minuta", desc: "Templates padrão utilizados pela IA." },
   { icon: Scale, title: "Base de jurisprudências", desc: "Importação manual e ativação." },
+];
+
+const CONFIGURACOES_TUTORIAL_STEPS: TutorialStep[] = [
+  {
+    target: '[data-tour="config-cards"]',
+    title: "Parâmetros Gerais do Sistema",
+    description:
+      "Nesta área os administradores gerenciam usuários, controle de acessos (LGPD), modelos de minutas e regras da base de conhecimento.",
+    icon: Settings,
+    position: "bottom",
+  },
+  {
+    target: '[data-tour="config-btn-new-user"]',
+    title: "Cadastrar Novo Usuário",
+    description:
+      "Clique em 'Novo usuário' para criar contas para novos analistas ou administradores com e-mail, senha e perfil atribuído.",
+    icon: UserPlus,
+    position: "left",
+  },
+  {
+    target: '[data-tour="config-user-table"]',
+    title: "Usuários Cadastrados",
+    description:
+      "Visualize a lista de contas ativas, e-mails cadastrados e níveis de permissão (Administrador ou Analista).",
+    icon: Users,
+    position: "top",
+  },
+  {
+    target: '[data-tour="config-user-actions"]',
+    title: "Editar e Excluir Usuários",
+    description:
+      "Utilize o botão de lápis para editar o nome, e-mail, perfil ou redefinir a senha do usuário, ou a lixeira para remover a conta.",
+    icon: Edit,
+    position: "left",
+  },
 ];
 
 const perfilLabel = (role: string | string[]) => {
@@ -140,7 +176,7 @@ const Configuracoes = () => {
 
   return (
     <AppLayout title="Configurações" subtitle="Parâmetros gerais do sistema">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div data-tour="config-cards" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {cards.map((c) => (
           <div key={c.title} className="bg-card border border-border rounded-xl shadow-card p-5 hover:shadow-elevated transition-shadow cursor-pointer">
             <c.icon className="h-5 w-5 text-primary mb-3" />
@@ -155,7 +191,7 @@ const Configuracoes = () => {
           <h2 className="font-semibold">Usuários cadastrados</h2>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" variant="outline">
+              <Button data-tour="config-btn-new-user" size="sm" variant="outline">
                 <Plus className="h-4 w-4 mr-2" /> Novo usuário
               </Button>
             </DialogTrigger>
@@ -274,7 +310,7 @@ const Configuracoes = () => {
         ) : usuarios.length === 0 ? (
           <div className="p-8 text-sm text-muted-foreground text-center">Nenhum usuário cadastrado.</div>
         ) : (
-          <table className="w-full text-sm">
+          <table data-tour="config-user-table" className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground bg-secondary/50">
                 <th className="px-5 py-3 font-medium">Usuário</th>
@@ -284,7 +320,7 @@ const Configuracoes = () => {
               </tr>
             </thead>
             <tbody>
-              {usuarios.map((u) => (
+              {usuarios.map((u, index) => (
                 <tr key={u.id ?? u.username} className="border-t border-border">
                   <td className="px-5 py-3 font-medium">{u.username}</td>
                   <td className="px-5 py-3 text-muted-foreground">{u.email}</td>
@@ -294,7 +330,10 @@ const Configuracoes = () => {
                     </span>
                   </td>
                   <td className="px-5 py-3" align="right">
-                    <div className="inline-flex items-center gap-2">
+                    <div
+                      data-tour={index === 0 ? "config-user-actions" : undefined}
+                      className="inline-flex items-center gap-2"
+                    >
                       <Button variant="outline" size="sm" onClick={() => handleEditUser(u)}>
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -469,9 +508,17 @@ const Configuracoes = () => {
         </Dialog>
 
       </section>
+
+      {/* Floating Tutorial Wizard */}
+      <PageTutorialWizard
+        steps={CONFIGURACOES_TUTORIAL_STEPS}
+        tutorialTitle="Tutorial de Configurações"
+        buttonLabel="Guia da Página"
+      />
     </AppLayout>
   );
 };
 
 export default Configuracoes;
+
 
