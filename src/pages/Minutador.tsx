@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Check, CheckCircle2, Save, Lock, Bot, Sparkles, FileText, RotateCcw, Loader2, Download, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { downloadProcessoPDF, downloadKnowledgeBaseFile } from "@/lib/api";
+import { downloadProcessoPDF, downloadKnowledgeBaseFile, enviarParaSEI  } from "@/lib/api";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { useDrafts } from "@/context/DraftsContext";
@@ -155,6 +155,45 @@ const Minutador = () => {
       (item) => typeof item === "string" && (!item.startsWith("j") || item.length > 3)
     );
   }, [sei]);
+
+  // Adicione o estado para controlar o carregamento do envio ao SEI
+  const [isSendingSEI, setIsSendingSEI] = useState(false);
+  const handleFinalizeAndSendSEI = async () => {
+    if (!user || !sei) return;
+    if (isLockedByOther) {
+      toast.error("Esta análise pertence a outro usuário.");
+      return;
+    }
+
+    const mudouOTexto = normalizar(minuta) !== normalizar(minutaOriginal);
+
+    setIsSendingSEI(true);
+    try {
+      toast.info("Iniciando a criação do documento no SEI via robô... Por favor, aguarde.");
+
+      // Salva a minuta localmente no rascunho
+      saveDraft({
+        seiId: sei.id,
+        minuta,
+        ownerEmail: effectiveOwnerEmail,
+        ownerName: effectiveOwnerName,
+        foiAlterado: mudouOTexto
+      });
+
+      // Invoca o backend/RPA
+      await enviarParaSEI(sei.id, minuta);
+
+      finalizeDraft(sei.id, user.name);
+      queryClient.invalidateQueries({ queryKey: domainDataQueryKeys.seiDetail(id) });
+      toast.success("Documento criado no SEI e análise concluída com sucesso!");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(`Erro ao enviar para o SEI: ${err.message || "Erro desconhecido"}`);
+    } finally {
+      setIsSendingSEI(false);
+    }
+  };
+
 
   if (isLoading) {
     return (
@@ -548,6 +587,22 @@ const Minutador = () => {
                         </Button>
                         <Button size="sm" onClick={handleFinalize} disabled={isAnalyzing}>
                           <CheckCircle2 className="h-4 w-4 mr-2" /> Finalizar análise
+                        </Button>
+                        
+                        <Button 
+                          size="sm" 
+                          onClick={handleFinalizeAndSendSEI} 
+                          disabled={isAnalyzing || isSendingSEI || readOnly}
+                        >
+                          {isSendingSEI ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Enviando ao SEI...
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="h-4 w-4 mr-2" /> Finalizar análise e enviar para o SEI
+                            </>
+                          )}
                         </Button>
                       </div>
                     )}

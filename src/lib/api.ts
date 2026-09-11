@@ -253,3 +253,17 @@ export const downloadKnowledgeBaseFile = async (filePath: string): Promise<void>
   window.URL.revokeObjectURL(blobUrl);
   document.body.removeChild(a);
 };
+
+//Envia a minuta para o RPA criar o documento no SEI.
+export const enviarParaSEI = async (
+  processoId: number | string,
+  minuta: string
+): Promise<{ message: string; processo: ProcessoSEI }> => {
+  return await api<{ message: string; processo: ProcessoSEI }>(
+    `/processos/${processoId}/enviar-sei`,
+    {
+      method: "POST",
+      body: { minuta },
+    }
+  );
+};
