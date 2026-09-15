@@ -35,7 +35,7 @@ const Relatorios = () => {
   }, []);
 
   const maxStatus = Math.max(...(metrics?.por_status.map(s => s.qtd) ?? [1]));
-  const total_por_status = metrics.por_status.reduce((acc, s) => acc + s.qtd, 0);
+  const total_por_status = metrics?.por_status.reduce((acc, s) => acc + s.qtd, 0) ?? 0;
 
   const maxRecebidos = Math.max(...(metrics?.metricas_equipe.recebidos_por_dia.map(d => d.qtd) ?? [1]));
   const maxFinalizados = Math.max(...(metrics?.metricas_equipe.finalizados_por_dia.map(d => d.qtd) ?? [1]));
