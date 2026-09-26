@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { PriorityBadge, StatusBadge, RemetenteBadge } from "@/components/shared/Badges";
+import { PriorityBadge, StatusBadge, RemetenteBadge, ComplexityBadge } from "@/components/shared/Badges";
 import { MultiSelectRemetenteFilter, filterProcessosByRemetentes } from "@/components/shared/MultiSelectRemetenteFilter";
 import { SortableHeader, sortProcessos, SortConfig } from "@/components/shared/SortableHeader";
 import { TablePagination } from "@/components/shared/TablePagination";
@@ -81,17 +81,39 @@ const SeisList = () => {
   };
 
   const filtered = useMemo(() => {
-    if (!processos) return [];
-    const searchFiltered = processos.filter((s) => {
-      const matchNum = !numeroFilter.trim() || s.numero.toLowerCase().includes(numeroFilter.trim().toLowerCase());
-      const matchQ = !q || s.numero.toLowerCase().includes(q.toLowerCase()) || s.assunto.toLowerCase().includes(q.toLowerCase());
-      const matchS = status === "Todos" || s.status === status;
-      return matchNum && matchQ && matchS;
-    });
+  if (!processos) return [];
 
-    const remFiltered = filterProcessosByRemetentes(searchFiltered, selectedRemetentes, remetentes);
-    return sortProcessos(remFiltered, sortConfig.field, sortConfig.direction, remetentes);
-  }, [processos, remetentes, q, numeroFilter, status, selectedRemetentes, sortConfig]);
+  // 1. Filtragem comum (Busca, Número, Status)
+  const searchFiltered = processos.filter((s) => {
+    const matchNum = !numeroFilter.trim() || s.numero.toLowerCase().includes(numeroFilter.trim().toLowerCase());
+    const matchQ = !q || s.numero.toLowerCase().includes(q.toLowerCase()) || s.assunto.toLowerCase().includes(q.toLowerCase());
+    const matchS = status === "Todos" || s.status === status;
+    return matchNum && matchQ && matchS;
+  });
+
+  const remFiltered = filterProcessosByRemetentes(searchFiltered, selectedRemetentes, remetentes);
+
+  // 2. Ordenação por Complexidade (Fácil -> Médio -> Difícil ou vice-versa)
+  if (sortConfig.field === "complexidade" && sortConfig.direction) {
+    const orderMap: Record<string, number> = {
+      FACIL: 1,
+      MEDIO: 2,
+      DIFICIL: 3,
+    };
+
+    return [...remFiltered].sort((a, b) => {
+      const normA = (a.complexidade || "").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const normB = (b.complexidade || "").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+      const valA = orderMap[normA] ?? 99;
+      const valB = orderMap[normB] ?? 99;
+
+      return sortConfig.direction === "asc" ? valA - valB : valB - valA;
+    });
+  }
+
+  return sortProcessos(remFiltered, sortConfig.field, sortConfig.direction, remetentes);
+}, [processos, remetentes, q, numeroFilter, status, selectedRemetentes, sortConfig]);
 
   // Estados da Paginação
   const [currentPage, setCurrentPage] = useState(1);
@@ -135,7 +157,6 @@ const SeisList = () => {
                 {statusOptions.map((s) => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
               </SelectContent>
             </Select>
-
             <MultiSelectRemetenteFilter
               selected={selectedRemetentes}
               onChange={setSelectedRemetentes}
@@ -153,6 +174,7 @@ const SeisList = () => {
                 <SortableHeader field="dataRecebimento" currentSort={sortConfig} onSort={handleSort} className="whitespace-nowrap">Recebimento</SortableHeader>
                 <SortableHeader field="prioridade" currentSort={sortConfig} onSort={handleSort} className="whitespace-nowrap">Prioridade</SortableHeader>
                 <SortableHeader field="status" currentSort={sortConfig} onSort={handleSort} className="whitespace-nowrap">Status</SortableHeader>
+                <SortableHeader field="complexidade" currentSort={sortConfig} onSort={handleSort} className="whitespace-nowrap">Complexidade</SortableHeader>
                 <th className="px-5 py-3 font-medium text-right whitespace-nowrap">Ações</th>
               </tr>
             </thead>
@@ -165,10 +187,11 @@ const SeisList = () => {
                     <td className="px-5 py-4"><Skeleton className="h-4 w-20" /></td>
                     <td className="px-5 py-4"><Skeleton className="h-5 w-16 rounded-full" /></td>
                     <td className="px-5 py-4"><Skeleton className="h-5 w-20 rounded-full" /></td>
+                    <td className="px-5 py-4"><Skeleton className="h-5 w-16 rounded-full" /></td>
                     <td className="px-5 py-4 text-right"><Skeleton className="h-8 w-24 ml-auto rounded-md" /></td>
                   </tr>
                 ))
-              ) :
+              ) : (
                 paginatedProcessos.map((s, index) => (
                   <tr key={s.id} className="border-t border-border hover:bg-secondary/40">
                     <td className="px-5 py-3 font-mono text-xs whitespace-nowrap">
@@ -181,9 +204,12 @@ const SeisList = () => {
                     <td className="px-5 py-3 text-muted-foreground whitespace-nowrap">{s.dataRecebimento}</td>
                     <td className="px-5 py-3 whitespace-nowrap"><PriorityBadge value={s.prioridade} /></td>
                     <td className="px-5 py-3 whitespace-nowrap"><StatusBadge value={s.status} /></td>
+                    <td className="px-5 py-3 whitespace-nowrap">
+                      <ComplexityBadge value={s.complexidade} justificativa={s.complexidade_justificativa} />
+                    </td>
                     <td
                       data-tour={index === 0 ? "action-sei" : undefined}
-                      className="px-5 py-3 text-right space-x-2"
+                      className="px-5 py-3 text-right space-x-2 whitespace-nowrap"
                     >
                       <Button asChild size="sm" variant="ghost"><Link to={`/seis/${s.id}`}>Detalhes</Link></Button>
                       {s.status !== "Concluído" && (
@@ -202,9 +228,9 @@ const SeisList = () => {
                     </td>
                   </tr>
                 ))
-              }
+              )}
               {!isLoading && paginatedProcessos.length === 0 && (
-                <tr><td colSpan={6} className="px-5 py-10 text-center text-muted-foreground">Nenhum SEI encontrado.</td></tr>
+                <tr><td colSpan={7} className="px-5 py-10 text-center text-muted-foreground">Nenhum SEI encontrado.</td></tr>
               )}
             </tbody>
           </table>

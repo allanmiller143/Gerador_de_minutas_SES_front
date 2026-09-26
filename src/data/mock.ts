@@ -32,6 +32,8 @@ export interface Sei {
     mime_type: string;
     url: string;
   };
+  complexidade?: string;
+  complexidade_justificativa?: string;
 }
 
 export interface Jurisprudencia {

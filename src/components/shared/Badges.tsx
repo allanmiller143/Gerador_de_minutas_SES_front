@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Bot, User } from "lucide-react";
 import type { Priority, SeiStatus } from "@/data/mock";
+import { Remetente } from "@/types/remetente";
 
 export const PriorityBadge = ({ value }: { value: Priority }) => {
   const map: Record<Priority, string> = {
@@ -28,7 +29,37 @@ export const StatusBadge = ({ value }: { value: SeiStatus }) => {
   );
 };
 
-/** Marca visível indicando se a análise vigente foi feita pela IA ou pelo humano. */
+export const ComplexityBadge = ({ value }: { value?: string }) => {
+  if (!value) {
+    return <span className="text-muted-foreground text-xs font-mono">-</span>;
+  }
+
+  const normalized = value
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  let colorClass = "bg-secondary text-secondary-foreground";
+  let label = value;
+
+  if (normalized === "FACIL") {
+    colorClass = "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400";
+    label = "Fácil";
+  } else if (normalized === "MEDIO") {
+    colorClass = "bg-amber-500/15 text-amber-700 dark:text-amber-400";
+    label = "Médio";
+  } else if (normalized === "DIFICIL") {
+    colorClass = "bg-rose-500/15 text-rose-700 dark:text-rose-400";
+    label = "Difícil";
+  }
+
+  return (
+    <span className={cn("inline-flex w-fit items-center px-2.5 py-0.5 rounded-full text-xs font-semibold", colorClass)}>
+      {label}
+    </span>
+  );
+};
+
 export const OriginBadge = ({ origin }: { origin: "ia" | "humano" }) => {
   if (origin === "ia") {
     return (
@@ -43,8 +74,6 @@ export const OriginBadge = ({ origin }: { origin: "ia" | "humano" }) => {
     </span>
   );
 };
-
-import { Remetente } from "@/types/remetente";
 
 const getContrastColor = (color: string): string => {
   if (color && color.startsWith("#") && (color.length === 7 || color.length === 4)) {

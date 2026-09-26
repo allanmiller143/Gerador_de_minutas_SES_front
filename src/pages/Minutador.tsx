@@ -638,6 +638,56 @@ const Minutador = () => {
         
         <div className="space-y-6">
           <ChatProcessoPanel processoId={sei.id} />
+          <div className="bg-card border border-border rounded-xl shadow-card p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Bot className="h-4 w-4 text-primary" />
+              <h3 className="font-semibold text-sm">Complexidade do processo</h3>
+            </div>
+
+            <div className="flex flex-wrap gap-2 mb-3">
+              {(["fácil", "médio", "difícil"] as const).map((nivel) => {
+                const cores = {
+                  "fácil": "bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-200",
+                  "médio": "bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200",
+                  "difícil": "bg-red-100 text-red-800 border-red-300 hover:bg-red-200",
+                };
+                const selecionado = sei.complexidade === nivel;
+                return (
+                  <button
+                    key={nivel}
+                    onClick={async () => {
+                      try {
+                        await updateProcesso.mutateAsync({ complexidade: nivel });
+                        toast.success(`Complexidade atualizada para "${nivel}".`);
+                      } catch {
+                        toast.error("Erro ao atualizar complexidade.");
+                      }
+                    }}
+                    className={cn(
+                      "px-3 py-1 rounded-full border text-xs font-semibold capitalize transition-colors",
+                      cores[nivel],
+                      selecionado && "ring-2 ring-offset-1 ring-current"
+                    )}
+                  >
+                    {nivel}
+                  </button>
+                );
+              })}
+          </div>
+
+          {sei.complexidade_justificativa && (
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              <span className="font-semibold text-foreground">Justificativa da IA: </span>
+              {sei.complexidade_justificativa}
+            </p>
+          )}
+
+          {!sei.complexidade && (
+            <p className="text-xs text-muted-foreground italic">
+              A IA ainda não classificou este processo. Selecione manualmente acima.
+            </p>
+          )}
+        </div>
           <aside className="bg-card border border-border rounded-xl shadow-card p-5 h-fit space-y-6">
             {sei.arquivoPdf && (
               <div>

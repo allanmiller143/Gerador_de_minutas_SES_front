@@ -4,6 +4,9 @@ export type StatusProcesso = "Pré-análise" | "Em revisão" | "Concluído";
 //Define os níveis de prioridade para a classificação dos processos.
 export type PrioridadeProcesso = "Alta" | "Média" | "Baixa";
 
+//Define os níveis de complexidade atribuídos pela IA ou redefinidos pelo analista.
+export type ComplexidadeProcesso = "FÁCIL" | "MÉDIO" | "DIFÍCIL" | "Fácil" | "Médio" | "Difícil";
+
 //Estrutura do contrato com os dados detalhados de um processo SEI
 export interface ProcessoSEI {
   id: number;                           //Identificador 
@@ -14,6 +17,8 @@ export interface ProcessoSEI {
   tempo_analise?: number;               //Tempo em segundos decorrido para concluir a análise de IA
   dataRecebimento: string;              //Data de entrada no sistema
   prioridade: PrioridadeProcesso;       //Grau de urgência 
+  complexidade?: string;                //Grau de complexidade (FÁCIL, MÉDIO, DIFÍCIL)
+  complexidade_justificativa?: string;  //Explicação técnica gerada pela IA sobre a complexidade
   iaConfidence: number;                 //Nível de confiança da IA (valor decimal de 0 a 1)
   analista?: string;                    //Nome do revisor humano (opcional, nulo se estiver na IA)
   dataRevisao?: string;                 //Quando a revisão humana aconteceu (opcional)
