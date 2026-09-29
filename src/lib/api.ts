@@ -135,7 +135,14 @@ export const fetchProcessos = async (): Promise<ProcessoSEI[]> => {
   return Array.isArray(response) ? response : (response?.processos || []);
 };
 export const fetchMetrics = async (processos: ProcessoSEI[]): Promise<DashboardMetrics> => {
-  return computeMetrics(processos as any);
+  return {
+    preAnalisadosIA: processos.filter((p) => p.status === "Pré-análise").length,
+    emRevisaoHumana: processos.filter((p) => p.status === "Em revisão").length,
+    concluidos: processos.filter((p) => p.status === "Concluído").length,
+    total: processos.length,
+    processosComPrazo: processos.filter((p) => p.tem_prazo_definido).length,
+    processosVencidos: processos.filter((p) => p.is_vencido).length,
+  };
 };
 
 // Faz o upload de um novo processo (PDF + dados do formulário)

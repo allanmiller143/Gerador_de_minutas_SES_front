@@ -1,4 +1,4 @@
-export type Priority = "Alta" | "Média" | "Baixa";
+export type Priority = "Máxima" | "Alta" | "Média" | "Baixa";
 // Fluxo: todo SEI entra e é PRÉ-ANALISADO pela IA automaticamente.
 // O humano apenas revisa e finaliza.
 export type SeiStatus =

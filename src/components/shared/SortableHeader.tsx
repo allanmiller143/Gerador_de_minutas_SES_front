@@ -12,7 +12,7 @@ export interface SortConfig {
 }
 
 const priorityWeights: Record<string, number> = {
-  Urgente: 4,
+  Máxima: 4,
   Alta: 3,
   Média: 2,
   Baixa: 1,
@@ -78,6 +78,13 @@ export const sortProcessos = (
         const timeA = parseDateStringToTimestamp(a.dataRevisao);
         const timeB = parseDateStringToTimestamp(b.dataRevisao);
         comparison = timeA - timeB;
+        break;
+      }
+
+      case "dias_restantes": {
+        const valA = a.dias_restantes !== null && a.dias_restantes !== undefined ? a.dias_restantes : Infinity;
+        const valB = b.dias_restantes !== null && b.dias_restantes !== undefined ? b.dias_restantes : Infinity;
+        comparison = valA - valB;
         break;
       }
 

@@ -125,6 +125,7 @@ const MinhasAnalises = () => {
               <SortableHeader field="numero" currentSort={sortConfig} onSort={handleSort}>SEI</SortableHeader>
               <SortableHeader field="assunto" currentSort={sortConfig} onSort={handleSort}>Assunto</SortableHeader>
               <SortableHeader field="prioridade" currentSort={sortConfig} onSort={handleSort}>Prioridade</SortableHeader>
+              <SortableHeader field="dias_restantes" currentSort={sortConfig} onSort={handleSort} className="whitespace-nowrap">Prazo</SortableHeader>
               <SortableHeader field="status" currentSort={sortConfig} onSort={handleSort}>Situação</SortableHeader>
               <th className="px-5 py-3 font-medium text-right">Ações</th>
             </tr>
@@ -136,6 +137,7 @@ const MinhasAnalises = () => {
                   <td className="px-5 py-4"><Skeleton className="h-4 w-28" /></td>
                   <td className="px-5 py-4"><Skeleton className="h-4 w-48" /></td>
                   <td className="px-5 py-4"><Skeleton className="h-5 w-16 rounded-full" /></td>
+                  <td className="px-5 py-4"><Skeleton className="h-4 w-16" /></td>
                   <td className="px-5 py-4"><Skeleton className="h-5 w-20 rounded-full" /></td>
                   <td className="px-5 py-4 text-right"><Skeleton className="h-8 w-24 ml-auto rounded-md" /></td>
                 </tr>
@@ -154,6 +156,15 @@ const MinhasAnalises = () => {
                     </td>
                     <td className="px-5 py-3">{s.assunto}</td>
                     <td className="px-5 py-3"><PriorityBadge value={s.prioridade} /></td>
+                    <td className="px-5 py-3 whitespace-nowrap font-medium">
+                      {s.dias_restantes !== null && s.dias_restantes !== undefined ? (
+                        <span className={s.dias_restantes < 0 ? "text-red-500" : s.dias_restantes === 0 ? "text-orange-500" : "text-muted-foreground"}>
+                          {s.dias_restantes < 0 ? "Vencido" : s.dias_restantes === 0 ? "Vence hoje" : `${s.dias_restantes} dias`}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground/50">Sem prazo</span>
+                    )}
+                  </td>
                     <td className="px-5 py-3">
                       <StatusBadge value={finalized ? "Concluído" : "Em revisão"} />
                     </td>
@@ -175,9 +186,9 @@ const MinhasAnalises = () => {
                 );
               })
             )}
-            {!isLoading && minhas.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-5 py-10 text-center text-muted-foreground">
+              {!isLoading && minhas.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-5 py-10 text-center text-muted-foreground">
                   <Lock className="h-4 w-4 inline mr-1" />
                   Você ainda não iniciou nenhuma análise. Vá em <Link to="/seis" className="text-primary font-medium hover:underline">SEIs</Link> para começar.
                 </td>

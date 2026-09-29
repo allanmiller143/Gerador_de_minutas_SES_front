@@ -2,10 +2,13 @@
 export type StatusProcesso = "Pré-análise" | "Em revisão" | "Concluído";
 
 //Define os níveis de prioridade para a classificação dos processos.
-export type PrioridadeProcesso = "Alta" | "Média" | "Baixa";
+export type PrioridadeProcesso = "Máxima" | "Alta" | "Média" | "Baixa";
 
 //Define os níveis de complexidade atribuídos pela IA ou redefinidos pelo analista.
 export type ComplexidadeProcesso = "FÁCIL" | "MÉDIO" | "DIFÍCIL" | "Fácil" | "Médio" | "Difícil";
+
+//Categoriza a origem do processo
+export type OrigemProcesso = 'controle' | 'interno' | 'outros';
 
 //Estrutura do contrato com os dados detalhados de um processo SEI
 export interface ProcessoSEI {
@@ -28,6 +31,14 @@ export interface ProcessoSEI {
   arquivoPdf?: string;                  //Caminho do arquivo PDF no GCS ou local
   jurisprudenciasSugeridas: any[];      //Lista de jurisprudências 
   isEditadoLocalmente?: boolean;        //Indica se foi editado.
+  data_emissao?: string;                //Data base para cálculo do prazo do órgão
+  data_vencimento?: string;             //Data final para resposta
+  dias_restantes?: number;              //Contagem de dias (pode ser negativo se estiver vencido)
+  is_vencido?: boolean;                 //Flag visual para destacar os vencidos
+  tem_prazo_definido?: boolean;         //Flag para saber se o processo entra na "Agenda do Dia"
+  remetente?: string;                   //Tag do órgão remetente (MP, TCE, PGE, etc.)
+  tipo_origem?: OrigemProcesso;         //Classificação ('controle', 'interno', 'outros')
+  nivel_prioridade?: number;            //Índice numérico para facilitar ordenação
 }
 
 //Contadores numéricos das caixas de métricas do Dashboard
@@ -36,4 +47,6 @@ export interface DashboardMetrics {
   emRevisaoHumana: number;        //Quantidade de processos em edição
   concluidos: number;             //Quantidade de análises finalizadas
   total: number;                  //Todos os processos listados no sistema
+  processosComPrazo?: number;     //Processos na fila que possuem prazo
+  processosVencidos?: number;     //Processos que já estouraram o prazo
 }

@@ -173,6 +173,7 @@ const SeisList = () => {
                 <SortableHeader field="assunto" currentSort={sortConfig} onSort={handleSort}>Assunto</SortableHeader>
                 <SortableHeader field="dataRecebimento" currentSort={sortConfig} onSort={handleSort} className="whitespace-nowrap">Recebimento</SortableHeader>
                 <SortableHeader field="prioridade" currentSort={sortConfig} onSort={handleSort} className="whitespace-nowrap">Prioridade</SortableHeader>
+                <SortableHeader field="dias_restantes" currentSort={sortConfig} onSort={handleSort} className="whitespace-nowrap">Prazo</SortableHeader>
                 <SortableHeader field="status" currentSort={sortConfig} onSort={handleSort} className="whitespace-nowrap">Status</SortableHeader>
                 <SortableHeader field="complexidade" currentSort={sortConfig} onSort={handleSort} className="whitespace-nowrap">Complexidade</SortableHeader>
                 <th className="px-5 py-3 font-medium text-right whitespace-nowrap">Ações</th>
@@ -186,6 +187,7 @@ const SeisList = () => {
                     <td className="px-5 py-4"><Skeleton className="h-4 w-48" /></td>
                     <td className="px-5 py-4"><Skeleton className="h-4 w-20" /></td>
                     <td className="px-5 py-4"><Skeleton className="h-5 w-16 rounded-full" /></td>
+                    <td className="px-5 py-4"><Skeleton className="h-4 w-16" /></td>
                     <td className="px-5 py-4"><Skeleton className="h-5 w-20 rounded-full" /></td>
                     <td className="px-5 py-4"><Skeleton className="h-5 w-16 rounded-full" /></td>
                     <td className="px-5 py-4 text-right"><Skeleton className="h-8 w-24 ml-auto rounded-md" /></td>
@@ -203,6 +205,15 @@ const SeisList = () => {
                     <td className="px-5 py-3">{s.assunto}</td>
                     <td className="px-5 py-3 text-muted-foreground whitespace-nowrap">{s.dataRecebimento}</td>
                     <td className="px-5 py-3 whitespace-nowrap"><PriorityBadge value={s.prioridade} /></td>
+                    <td className="px-5 py-3 whitespace-nowrap font-medium">
+                      {s.dias_restantes !== null && s.dias_restantes !== undefined ? (
+                        <span className={s.dias_restantes < 0 ? "text-red-500" : s.dias_restantes === 0 ? "text-orange-500" : "text-muted-foreground"}>
+                          {s.dias_restantes < 0 ? "Vencido" : s.dias_restantes === 0 ? "Vence hoje" : `${s.dias_restantes} dias`}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground/50">Sem prazo</span>
+                      )}
+                    </td>
                     <td className="px-5 py-3 whitespace-nowrap"><StatusBadge value={s.status} /></td>
                     <td className="px-5 py-3 whitespace-nowrap">
                       <ComplexityBadge value={s.complexidade} justificativa={s.complexidade_justificativa} />
@@ -230,7 +241,7 @@ const SeisList = () => {
                 ))
               )}
               {!isLoading && paginatedProcessos.length === 0 && (
-                <tr><td colSpan={7} className="px-5 py-10 text-center text-muted-foreground">Nenhum SEI encontrado.</td></tr>
+                <tr><td colSpan={8} className="px-5 py-10 text-center text-muted-foreground">Nenhum SEI encontrado.</td></tr>
               )}
             </tbody>
           </table>

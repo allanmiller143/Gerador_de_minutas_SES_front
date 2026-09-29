@@ -239,7 +239,7 @@ const SeiDetail = () => {
             </DialogDescription>
           </DialogHeader>
           <RadioGroup value={newPriority} onValueChange={(v) => setNewPriority(v as Priority)} className="py-2">
-            {(["Alta", "Média", "Baixa"] as Priority[]).map((p) => (
+            {(["Máxima", "Alta", "Média", "Baixa"] as Priority[]).map((p) => (
               <div key={p} className="flex items-center space-x-2 border border-border rounded-lg p-3 hover:bg-secondary/40">
                 <RadioGroupItem value={p} id={`p-${p}`} />
                 <Label htmlFor={`p-${p}`} className="flex-1 cursor-pointer flex items-center justify-between">

@@ -5,10 +5,12 @@ import { Remetente } from "@/types/remetente";
 
 export const PriorityBadge = ({ value }: { value: Priority }) => {
   const map: Record<Priority, string> = {
-    Alta: "bg-priority-high-bg text-priority-high",
+    Máxima: "bg-priority-high-bg text-priority-high",
+    Alta: "bg-orange-500/15 text-orange-700 dark:text-orange-400",
     Média: "bg-priority-medium-bg text-priority-medium",
     Baixa: "bg-priority-low-bg text-priority-low",
   };
+  
   return (
     <span className={cn("inline-flex w-fit items-center px-2.5 py-0.5 rounded-full text-xs font-semibold", map[value])}>
       {value}

@@ -12,7 +12,7 @@ export function UploadDraftModal({ isOpen, onClose }: { isOpen: boolean; onClose
   const [file, setFile] = useState<File | null>(null);
   const [numero, setNumero] = useState("");
   const [assunto, setAssunto] = useState("");
-  const [prioridade, setPrioridade] = useState("Normal");
+  const [prioridade, setPrioridade] = useState("Média");
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadMutation = useUploadProcesso();
@@ -130,10 +130,10 @@ export function UploadDraftModal({ isOpen, onClose }: { isOpen: boolean; onClose
                 <SelectValue placeholder="Selecione..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Normal">Normal</SelectItem>
-                <SelectItem value="Urgente">Urgente</SelectItem>
-                <SelectItem value="Emergência">Emergência</SelectItem>
+                <SelectItem value="Máxima">Máxima</SelectItem>
                 <SelectItem value="Alta">Alta</SelectItem>
+                <SelectItem value="Média">Média</SelectItem>
+                <SelectItem value="Baixa">Baixa</SelectItem>
               </SelectContent>
             </Select>
           </div>
