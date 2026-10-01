@@ -171,6 +171,13 @@ export const analisarProcessoIA = async (id: number, apenasMinuta?: boolean): Pr
   });
 };
 
+// Solicita o reprocessamento em lote de todos os processos com falha
+export const reprocessarFalhasIA = async (): Promise<{ message: string; count: number }> => {
+  return await api<{ message: string; count: number }>("/processos/reprocessar-falhas", {
+    method: "POST",
+  });
+};
+
 // Realiza o download do arquivo PDF do processo SEI diretamente do backend Flask
 export const downloadProcessoPDF = async (id: number, originalFilename: string): Promise<void> => {
   const token = tokenStore.getAccess();

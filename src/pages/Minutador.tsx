@@ -5,7 +5,7 @@ import { useGenerateResumo, useRestoreResumo, useResumoVersions, useSeiDetail, u
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Check, CheckCircle2, Save, Lock, Bot, Sparkles, FileText, RotateCcw, Loader2, Download, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Check, CheckCircle2, Save, Lock, Bot, Sparkles, FileText, RotateCcw, Loader2, Download, AlertTriangle, BookOpen, ExternalLink, FileStack } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { downloadProcessoPDF, downloadKnowledgeBaseFile, enviarParaSEI  } from "@/lib/api";
 import { toast } from "sonner";
@@ -92,13 +92,14 @@ const Minutador = () => {
   const handleDownloadKB = async (filePath: string) => {
     try {
       setDownloadingKB(filePath);
-      const fileName = filePath.split("/").pop() || "documento.pdf";
-      toast.info(`Iniciando o download de "${fileName}"...`);
+      const isFile = filePath.toLowerCase().endsWith(".pdf");
+      const displayName = isFile ? (filePath.split("/").pop() || filePath) : filePath;
+      toast.info(`Buscando documento "${displayName}"...`);
       await downloadKnowledgeBaseFile(filePath);
-      toast.success(`Download de "${fileName}" concluído!`);
+      toast.success(`Download de "${displayName}" concluído!`);
     } catch (error: any) {
       console.error(error);
-      toast.error(`Falha ao baixar o arquivo da base de conhecimento: ${error?.message || "Erro de conexão"}`);
+      toast.error(error?.message || "Arquivo não encontrado na base de conhecimento.");
     } finally {
       setDownloadingKB(null);
     }
@@ -149,11 +150,28 @@ const Minutador = () => {
   const insumoParecer = resumoTecnico?.insumo_parecer;
   const minutaOriginal = resumoData?.minuta ?? data?.minuta ?? sei?.iaSugestao ?? "";
 
-  const documentosIA = useMemo(() => {
+  const fontesConsultadas = useMemo(() => {
     if (!sei) return [];
-    return (sei.jurisprudenciasSugeridas || []).filter(
-      (item) => typeof item === "string" && (!item.startsWith("j") || item.length > 3)
-    );
+    if (sei.fontes_consultadas_detalhadas && sei.fontes_consultadas_detalhadas.length > 0) {
+      return sei.fontes_consultadas_detalhadas;
+    }
+    // Fallback para quando o array detalhado ainda não estiver carregado
+    return (sei.jurisprudenciasSugeridas || [])
+      .filter((item) => typeof item === "string" && (!item.startsWith("j") || item.length > 3))
+      .map((texto) => {
+        const isProcessDoc =
+          texto.toLowerCase().includes("processo") ||
+          texto.toLowerCase().includes("laudo") ||
+          texto.toLowerCase().includes("prescri") ||
+          (sei?.numero ? texto.includes(sei.numero) : false);
+        return {
+          texto,
+          tipo: isProcessDoc ? ("processo" as const) : ("norma_citada" as const),
+          tem_arquivo: isProcessDoc && Boolean(sei.arquivoPdf),
+          arquivo_nome: null,
+          file_path: null,
+        };
+      });
   }, [sei]);
 
   // Adicione o estado para controlar o carregamento do envio ao SEI
@@ -798,45 +816,97 @@ const Minutador = () => {
               </div>
             )}
 
-            {/* Base de Conhecimento IA */}
-            {documentosIA.length > 0 && (
+            {/* Fontes e Diretrizes Consultadas */}
+            {fontesConsultadas.length > 0 && (
               <div className="border-t border-border pt-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <FileText className="h-4 w-4 text-primary" />
-                  <h3 className="font-semibold text-sm">Base de Conhecimento IA</h3>
+                <div className="flex items-center gap-2 mb-2">
+                  <BookOpen className="h-4 w-4 text-primary" />
+                  <h3 className="font-semibold text-sm">Diretrizes e Fontes Consultadas</h3>
                 </div>
-                <p className="text-xs text-muted-foreground mb-4">
-                  Documentos e diretrizes técnicas utilizados para fundamentar esta minuta.
+                <p className="text-xs text-muted-foreground mb-3">
+                  Documentos e normas técnicas identificados pela IA para fundamentar esta minuta.
                 </p>
                 <ul className="space-y-2">
-                  {documentosIA.map((doc, idx) => {
-                    const filename = doc.split("/").pop() || doc;
-                    const isDownloadingThis = downloadingKB === doc;
+                  {fontesConsultadas.map((fonte, idx) => {
+                    const isProcessDoc = fonte.tipo === "processo";
+                    const isBaseFile = fonte.tipo === "arquivo_base";
+                    const isDownloadingThis = downloadingKB === (fonte.file_path || fonte.texto);
+                    const displayName = fonte.arquivo_nome ? fonte.arquivo_nome.replace(".pdf", "") : fonte.texto;
+
                     return (
-                      <li key={idx} className="border border-border rounded-lg p-2.5 bg-primary/5 hover:bg-primary/10 transition-all flex items-center justify-between gap-3">
+                      <li key={idx} className="border border-border rounded-lg p-2.5 bg-primary/5 hover:bg-primary/10 transition-all flex items-start justify-between gap-3">
                         <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                          <Bot className="h-4 w-4 text-primary/70 shrink-0 mt-0.5" />
-                          <span
-                            className="text-xs font-medium text-foreground truncate block cursor-help"
-                            title={doc}
-                          >
-                            {filename}
-                          </span>
+                          {isProcessDoc ? (
+                            <FileStack className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                          ) : isBaseFile ? (
+                            <FileText className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                          ) : (
+                            <BookOpen className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                          )}
+                          <div className="flex flex-col min-w-0 flex-1">
+                            <span
+                              className="text-xs font-medium text-foreground leading-snug break-words"
+                              title={fonte.texto}
+                            >
+                              {displayName}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground mt-0.5">
+                              {isProcessDoc
+                                ? "Autos do Processo SEI"
+                                : isBaseFile
+                                ? "Documento da Base Técnica"
+                                : "Norma / Citação Legal (Sem PDF avulso na base)"}
+                            </span>
+                          </div>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDownloadKB(doc)}
-                          disabled={isDownloadingThis}
-                          className="h-7 w-7 shrink-0 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
-                          title={`Baixar ${filename}`}
-                        >
-                          <Download className={cn("h-3.5 w-3.5", isDownloadingThis && "animate-pulse")} />
-                        </Button>
+
+                        {fonte.tem_arquivo ? (
+                          isProcessDoc ? (
+                            sei?.arquivoPdf ? (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={handleDownloadPDF}
+                                disabled={isDownloading}
+                                className="h-7 w-7 shrink-0 text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 transition-all"
+                                title="Baixar PDF dos autos do processo"
+                              >
+                                <Download className={cn("h-3.5 w-3.5", isDownloading && "animate-pulse")} />
+                              </Button>
+                            ) : null
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDownloadKB(fonte.file_path || fonte.texto)}
+                              disabled={isDownloadingThis}
+                              className="h-7 w-7 shrink-0 text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10 transition-all"
+                              title={`Baixar ${displayName}`}
+                            >
+                              <Download className={cn("h-3.5 w-3.5", isDownloadingThis && "animate-pulse")} />
+                            </Button>
+                          )
+                        ) : (
+                          <span
+                            className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-muted/60 text-muted-foreground shrink-0 cursor-help"
+                            title="A IA utilizou esta norma oficial para embasar o parecer técnico. O arquivo PDF correspondente ainda não foi adicionado à Base de Conhecimento."
+                          >
+                            Citação
+                          </span>
+                        )}
                       </li>
                     );
                   })}
                 </ul>
+                <div className="mt-3 pt-2 border-t border-border/50 text-center">
+                  <Link
+                    to="/knowledge-base"
+                    target="_blank"
+                    className="text-xs text-primary hover:underline inline-flex items-center gap-1 font-medium"
+                  >
+                    Acessar Base de Conhecimento (280+ PDFs) <ExternalLink className="h-3 w-3" />
+                  </Link>
+                </div>
               </div>
             )}
 

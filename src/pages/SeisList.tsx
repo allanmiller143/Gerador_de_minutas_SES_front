@@ -9,14 +9,15 @@ import { type SeiStatus } from "@/data/mock";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Loader2, ChevronLeft, ChevronRight, FileText, Filter, Table, Pencil } from "lucide-react";
-import { useProcessos } from "@/hooks/useProcessos";
+import { Search, Loader2, ChevronLeft, ChevronRight, FileText, Filter, Table, Pencil, RotateCcw } from "lucide-react";
+import { useProcessos, useAnalisarProcesso, useReprocessarFalhas } from "@/hooks/useProcessos";
 import { useRemetentes } from "@/hooks/useRemetentes";
 import { Skeleton } from "@/components/ui/skeleton";
-import { isProcessingStatus } from "@/lib/processStatus";
+import { isProcessingStatus, isFailedStatus } from "@/lib/processStatus";
 import { PageTutorialWizard, TutorialStep } from "@/components/shared/PageTutorialWizard";
+import { toast } from "sonner";
 
-const statusOptions: (SeiStatus | "Todos")[] = ["Todos", "Pré-análise", "Em revisão", "Concluído"];
+const statusOptions: (SeiStatus | "Todos" | "Falha na análise")[] = ["Todos", "Pré-análise", "Em revisão", "Concluído", "Falha na análise"];
 
 const SEIS_LIST_TUTORIAL_STEPS: TutorialStep[] = [
   {
@@ -69,6 +70,32 @@ const SeisList = () => {
   const [status, setStatus] = useState<string>("Todos");
   const [selectedRemetentes, setSelectedRemetentes] = useState<string[]>([]);
   const [sortConfig, setSortConfig] = useState<SortConfig>({ field: null, direction: null });
+
+  const analisarMutation = useAnalisarProcesso();
+  const reprocessarFalhasMutation = useReprocessarFalhas();
+
+  const failedProcessos = useMemo(() => {
+    if (!processos) return [];
+    return processos.filter((p) => isFailedStatus(p.status_processamento) || p.status === "Falha na análise");
+  }, [processos]);
+
+  const handleReprocessar = async (id: number) => {
+    try {
+      await analisarMutation.mutateAsync({ id, apenasMinuta: false });
+      toast.success("Processo reenfileirado para análise com IA.");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao reenfileirar processo para análise.");
+    }
+  };
+
+  const handleReprocessarFalhas = async () => {
+    try {
+      const res = await reprocessarFalhasMutation.mutateAsync();
+      toast.success(res.message || "Processos com falha reenfileirados com sucesso.");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao reenfileirar processos com falha.");
+    }
+  };
 
   const handleSort = (field: string) => {
     setSortConfig((prev) => {
@@ -162,6 +189,18 @@ const SeisList = () => {
               onChange={setSelectedRemetentes}
               remetentes={remetentes}
             />
+            {failedProcessos.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 border-rose-500/40 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 whitespace-nowrap"
+                onClick={handleReprocessarFalhas}
+                disabled={reprocessarFalhasMutation.isPending}
+              >
+                <RotateCcw className={`h-3.5 w-3.5 ${reprocessarFalhasMutation.isPending ? "animate-spin" : ""}`} />
+                Reprocessar Falhas ({failedProcessos.length})
+              </Button>
+            )}
           </div>
         </div>
 
@@ -227,6 +266,17 @@ const SeisList = () => {
                         isProcessingStatus(s.status_processamento) ? (
                           <Button size="sm" disabled className="cursor-not-allowed">
                             <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Analisando
+                          </Button>
+                        ) : (isFailedStatus(s.status_processamento) || s.status === "Falha na análise") ? (
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="gap-1.5"
+                            onClick={() => handleReprocessar(Number(s.id))}
+                            title={s.erro_processamento ? `Erro: ${s.erro_processamento}` : "Clique para tentar novamente"}
+                            disabled={analisarMutation.isPending}
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" /> Tentar Novamente
                           </Button>
                         ) : (
                           <Button asChild size="sm">

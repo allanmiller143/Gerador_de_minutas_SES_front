@@ -31,7 +31,7 @@ export const StatusBadge = ({ value }: { value: SeiStatus }) => {
   );
 };
 
-export const ComplexityBadge = ({ value }: { value?: string }) => {
+export const ComplexityBadge = ({ value, justificativa }: { value?: string; justificativa?: string }) => {
   if (!value) {
     return <span className="text-muted-foreground text-xs font-mono">-</span>;
   }
@@ -44,19 +44,22 @@ export const ComplexityBadge = ({ value }: { value?: string }) => {
   let colorClass = "bg-secondary text-secondary-foreground";
   let label = value;
 
-  if (normalized === "FACIL") {
+  if (normalized === "FACIL" || normalized === "BAIXA" || normalized === "BAIXO") {
     colorClass = "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400";
-    label = "Fácil";
-  } else if (normalized === "MEDIO") {
+    label = normalized.startsWith("BAIX") ? "Baixa" : "Fácil";
+  } else if (normalized === "MEDIO" || normalized === "MEDIA") {
     colorClass = "bg-amber-500/15 text-amber-700 dark:text-amber-400";
-    label = "Médio";
-  } else if (normalized === "DIFICIL") {
+    label = normalized === "MEDIA" ? "Média" : "Médio";
+  } else if (normalized === "DIFICIL" || normalized === "ALTA" || normalized === "ALTO") {
     colorClass = "bg-rose-500/15 text-rose-700 dark:text-rose-400";
-    label = "Difícil";
+    label = normalized.startsWith("ALT") ? "Alta" : "Difícil";
   }
 
   return (
-    <span className={cn("inline-flex w-fit items-center px-2.5 py-0.5 rounded-full text-xs font-semibold", colorClass)}>
+    <span
+      className={cn("inline-flex w-fit items-center px-2.5 py-0.5 rounded-full text-xs font-semibold", colorClass, justificativa && "cursor-help")}
+      title={justificativa ? `Justificativa da IA: ${justificativa}` : undefined}
+    >
       {label}
     </span>
   );

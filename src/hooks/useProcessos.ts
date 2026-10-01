@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchProcessos, uploadProcessoPDF, analisarProcessoIA } from "@/lib/api";
+import { fetchProcessos, uploadProcessoPDF, analisarProcessoIA, reprocessarFalhasIA } from "@/lib/api";
 import { useDrafts } from "@/context/DraftsContext";
 import { getEffectiveList } from "@/data/mock";
 import { ProcessoSEI } from "@/types/sei";
@@ -48,6 +48,17 @@ export const useAnalisarProcesso = () => {
     // Ajustado para receber um objeto contendo o ID e a flag opcional
     mutationFn: ({ id, apenasMinuta }: { id: number; apenasMinuta?: boolean }) =>
       analisarProcessoIA(id, apenasMinuta),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["processos"] });
+    },
+  });
+};
+
+export const useReprocessarFalhas = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => reprocessarFalhasIA(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["processos"] });
     },

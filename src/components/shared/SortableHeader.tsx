@@ -114,6 +114,25 @@ export const sortProcessos = (
         break;
       }
 
+      case "complexidade": {
+        const weights: Record<string, number> = {
+          FACIL: 1,
+          BAIXA: 1,
+          BAIXO: 1,
+          MEDIO: 2,
+          MEDIA: 2,
+          DIFICIL: 3,
+          ALTA: 3,
+          ALTO: 3,
+        };
+        const normA = (a.complexidade || "").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const normB = (b.complexidade || "").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const weightA = weights[normA] || 0;
+        const weightB = weights[normB] || 0;
+        comparison = weightA - weightB;
+        break;
+      }
+
       default:
         comparison = 0;
     }

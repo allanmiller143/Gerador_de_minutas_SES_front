@@ -2,16 +2,18 @@ import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MetricCard } from "@/components/shared/MetricCard";
-import { PriorityBadge, StatusBadge, OriginBadge, RemetenteBadge } from "@/components/shared/Badges";
+import { PriorityBadge, StatusBadge, OriginBadge, RemetenteBadge, ComplexityBadge } from "@/components/shared/Badges";
 import { MultiSelectRemetenteFilter, filterProcessosByRemetentes } from "@/components/shared/MultiSelectRemetenteFilter";
 import { SortableHeader, sortProcessos, SortConfig } from "@/components/shared/SortableHeader";
 import { TablePagination } from "@/components/shared/TablePagination";
-import { Bot, UserCheck, Send, FileStack, ArrowRight, Eye, Sparkles, FileUp, Loader2, Clock, Info, BarChart3, Pencil, CheckCircle2 } from "lucide-react";
+import { Bot, UserCheck, Send, FileStack, ArrowRight, Eye, Sparkles, FileUp, Loader2, Clock, Info, BarChart3, Pencil, CheckCircle2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useDashboard } from "@/hooks/useDashboard";
 import { useRemetentes } from "@/hooks/useRemetentes";
+import { useAnalisarProcesso, useReprocessarFalhas } from "@/hooks/useProcessos";
+import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UploadDraftModal } from "@/components/shared/UploadDraftModal";
 import { isFailedStatus, isProcessingStatus } from "@/lib/processStatus";
@@ -130,10 +132,37 @@ const Dashboard = () => {
     });
   };
 
+  const reprocessarFalhasMutation = useReprocessarFalhas();
+  const analisarProcessoMutation = useAnalisarProcesso();
+  const [analisandoId, setAnalisandoId] = useState<number | null>(null);
+
+  const handleReprocessarIndividual = async (id: number) => {
+    setAnalisandoId(id);
+    try {
+      await analisarProcessoMutation.mutateAsync({ id });
+      toast.success("Processo reenviado para análise com sucesso!");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.erro || "Erro ao reprocessar análise.");
+    } finally {
+      setAnalisandoId(null);
+    }
+  };
+
+  const handleReprocessarTodasFalhas = async () => {
+    try {
+      const res = await reprocessarFalhasMutation.mutateAsync();
+      toast.success(res.mensagem || "Processos com falha reenviados para a fila de análise!");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.erro || "Erro ao reprocessar falhas em lote.");
+    }
+  };
+
   const preAnalisados = useMemo(() => {
     if (!data) return [];
     const list = data.filter(
-      (s) => s.status === "Pré-análise" && (!numeroPre.trim() || s.numero.toLowerCase().includes(numeroPre.trim().toLowerCase()))
+      (s) =>
+        (s.status === "Pré-análise" || s.status === "Falha na análise" || isFailedStatus(s.status_processamento)) &&
+        (!numeroPre.trim() || s.numero.toLowerCase().includes(numeroPre.trim().toLowerCase()))
     );
     return sortProcessos(
       filterProcessosByRemetentes(
@@ -249,6 +278,19 @@ const Dashboard = () => {
             <h2 className="font-semibold text-foreground">Pré-analisados pela IA · aguardando revisão humana</h2>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            {metrics?.falhasAnalise && metrics.falhasAnalise > 0 ? (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleReprocessarTodasFalhas}
+                disabled={reprocessarFalhasMutation.isPending}
+                className="h-8 gap-1.5 text-xs shrink-0"
+                title="Reenviar todos os processos que falharam para a fila da IA"
+              >
+                <RotateCcw className={`h-3.5 w-3.5 ${reprocessarFalhasMutation.isPending ? "animate-spin" : ""}`} />
+                Reprocessar Falhas ({metrics.falhasAnalise})
+              </Button>
+            ) : null}
             <Input
               placeholder="Filtrar por nº SEI..."
               className="w-56 sm:w-64 h-8 text-xs bg-background"
@@ -269,6 +311,7 @@ const Dashboard = () => {
                 <SortableHeader field="assunto" currentSort={sortPre} onSort={(f) => handleSort(setSortPre, f)}>Assunto</SortableHeader>
                 <SortableHeader field="dataRecebimento" currentSort={sortPre} onSort={(f) => handleSort(setSortPre, f)}>Recebido</SortableHeader>
                 <SortableHeader field="prioridade" currentSort={sortPre} onSort={(f) => handleSort(setSortPre, f)}>Prioridade</SortableHeader>
+                <SortableHeader field="complexidade" currentSort={sortPre} onSort={(f) => handleSort(setSortPre, f)}>Complexidade</SortableHeader>
                 <SortableHeader field="iaConfidence" currentSort={sortPre} onSort={(f) => handleSort(setSortPre, f)}>Confiança IA</SortableHeader>
                 <th className="px-5 py-3 font-medium text-right">Ações</th>
               </tr>
@@ -299,14 +342,20 @@ const Dashboard = () => {
                     </div>
                   </td>
                   <td className="px-5 py-3"><PriorityBadge value={s.prioridade} /></td>
+                  <td className="px-5 py-3 whitespace-nowrap">
+                    <ComplexityBadge value={s.complexidade} justificativa={s.complexidade_justificativa} />
+                  </td>
                   <td className="px-5 py-3 w-40">
                     {isProcessingStatus(s.status_processamento) ? (
                       <div className="flex items-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin text-primary" />
                         <span className="text-xs text-muted-foreground animate-pulse">Analisando...</span>
                       </div>
-                    ) : isFailedStatus(s.status_processamento) ? (
-                      <span className="text-xs font-semibold text-destructive">Falha na análise</span>
+                    ) : isFailedStatus(s.status_processamento) || s.status === "Falha na análise" ? (
+                      <div className="flex items-center gap-1 text-xs font-semibold text-destructive" title={s.erro_processamento || undefined}>
+                        <span>Falha na análise</span>
+                        {s.erro_processamento && <Info className="h-3.5 w-3.5 shrink-0 opacity-70" />}
+                      </div>
                     ) : (
                       <div className="flex items-center gap-2">
                         <Progress value={s.iaConfidence * 100} className="h-1.5 flex-1" />
@@ -318,6 +367,18 @@ const Dashboard = () => {
                     {isProcessingStatus(s.status_processamento) ? (
                       <Button size="sm" disabled className="cursor-not-allowed">
                         <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Analisando
+                      </Button>
+                    ) : isFailedStatus(s.status_processamento) || s.status === "Falha na análise" ? (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleReprocessarIndividual(s.id)}
+                        disabled={analisandoId === s.id}
+                        title={s.erro_processamento ? `Erro: ${s.erro_processamento}` : "Clique para tentar analisar novamente"}
+                        className="gap-1.5"
+                      >
+                        <RotateCcw className={`h-3.5 w-3.5 ${analisandoId === s.id ? "animate-spin" : ""}`} />
+                        Tentar Novamente
                       </Button>
                     ) : (
                       <Button
@@ -332,7 +393,7 @@ const Dashboard = () => {
                 </tr>
               ))}
               {preAnalisados.length === 0 && (
-                <tr><td colSpan={6} className="px-5 py-8 text-center text-muted-foreground">Nenhum processo aguardando revisão.</td></tr>
+                <tr><td colSpan={7} className="px-5 py-8 text-center text-muted-foreground">Nenhum processo aguardando revisão.</td></tr>
               )}
             </tbody>
           </table>
@@ -373,6 +434,7 @@ const Dashboard = () => {
                 <SortableHeader field="assunto" currentSort={sortEmRevisao} onSort={(f) => handleSort(setSortEmRevisao, f)}>Assunto</SortableHeader>
                 <SortableHeader field="analista" currentSort={sortEmRevisao} onSort={(f) => handleSort(setSortEmRevisao, f)}>Revisor</SortableHeader>
                 <SortableHeader field="prioridade" currentSort={sortEmRevisao} onSort={(f) => handleSort(setSortEmRevisao, f)}>Prioridade</SortableHeader>
+                <SortableHeader field="complexidade" currentSort={sortEmRevisao} onSort={(f) => handleSort(setSortEmRevisao, f)}>Complexidade</SortableHeader>
                 <th className="px-5 py-3 font-medium text-right">Ações</th>
               </tr>
             </thead>
@@ -394,6 +456,9 @@ const Dashboard = () => {
                   <td className="px-5 py-3"><AssuntoCell texto={s.assunto} /></td>
                   <td className="px-5 py-3">{s.analista ?? "—"}</td>
                   <td className="px-5 py-3"><PriorityBadge value={s.prioridade} /></td>
+                  <td className="px-5 py-3 whitespace-nowrap">
+                    <ComplexityBadge value={s.complexidade} justificativa={s.complexidade_justificativa} />
+                  </td>
                   <td className="px-5 py-3 text-right">
                     <Button asChild size="sm" variant="outline">
                       <Link to={`/minutador/${s.id}`}>Continuar revisão</Link>
@@ -402,7 +467,7 @@ const Dashboard = () => {
                 </tr>
               ))}
               {emRevisao.length === 0 && (
-                <tr><td colSpan={5} className="px-5 py-8 text-center text-muted-foreground">Nenhum processo em revisão humana.</td></tr>
+                <tr><td colSpan={6} className="px-5 py-8 text-center text-muted-foreground">Nenhum processo em revisão humana.</td></tr>
               )}
             </tbody>
           </table>
@@ -447,6 +512,7 @@ const Dashboard = () => {
                 <SortableHeader field="dataRevisao" currentSort={sortRevisados} onSort={(f) => handleSort(setSortRevisados, f)}>Revisado em</SortableHeader>
                 <SortableHeader field="analista" currentSort={sortRevisados} onSort={(f) => handleSort(setSortRevisados, f)}>Analista</SortableHeader>
                 <SortableHeader field="status" currentSort={sortRevisados} onSort={(f) => handleSort(setSortRevisados, f)}>Status</SortableHeader>
+                <SortableHeader field="complexidade" currentSort={sortRevisados} onSort={(f) => handleSort(setSortRevisados, f)}>Complexidade</SortableHeader>
                 <th className="px-5 py-3 font-medium text-right">Ações</th>
               </tr>
             </thead>
@@ -468,6 +534,9 @@ const Dashboard = () => {
                   <td className="px-5 py-3 text-muted-foreground">{s.dataRevisao ?? "—"}</td>
                   <td className="px-5 py-3">{s.analista}</td>
                   <td className="px-5 py-3"><StatusBadge value={s.status} /></td>
+                  <td className="px-5 py-3 whitespace-nowrap">
+                    <ComplexityBadge value={s.complexidade} justificativa={s.complexidade_justificativa} />
+                  </td>
                   <td className="px-5 py-3 text-right">
                     <Button asChild size="sm" variant="ghost">
                       <Link to={`/seis/${s.id}`}><Eye className="h-3.5 w-3.5 mr-1" /> Visualizar</Link>
@@ -476,7 +545,7 @@ const Dashboard = () => {
                 </tr>
               ))}
               {revisadosHumanos.length === 0 && (
-                <tr><td colSpan={6} className="px-5 py-8 text-center text-muted-foreground">Nenhum processo revisado por humanos.</td></tr>
+                <tr><td colSpan={7} className="px-5 py-8 text-center text-muted-foreground">Nenhum processo revisado por humanos.</td></tr>
               )}
             </tbody>
           </table>
