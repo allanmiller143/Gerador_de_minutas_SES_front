@@ -16,6 +16,7 @@ import Configuracoes from "./pages/Configuracoes.tsx";
 import ResumoBatch from "./pages/ResumoBatch.tsx";
 import MinhasAnalises from "./pages/MinhasAnalises.tsx";
 import Remetentes from "./pages/Remetentes.tsx";
+import TextosPadroes from "./pages/TextosPadroes/index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import KnowledgeBase from "./pages/KnowledgeBase/index.tsx";
 
@@ -37,6 +38,7 @@ const App = () => (
               <Route path="/minutador/:id" element={<ProtectedRoute><Minutador /></ProtectedRoute>} />
               <Route path="/minhas-analises" element={<ProtectedRoute><MinhasAnalises /></ProtectedRoute>} />
               <Route path="/remetentes" element={<ProtectedRoute><Remetentes /></ProtectedRoute>} />
+              <Route path="/textos-padroes" element={<ProtectedRoute><TextosPadroes /></ProtectedRoute>} />
               <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
               <Route path="/knowledge-base" element={<ProtectedRoute><KnowledgeBase /></ProtectedRoute>} />
               <Route path="/configuracoes" element={<ProtectedRoute roles={["administrador"]}><Configuracoes /></ProtectedRoute>} />

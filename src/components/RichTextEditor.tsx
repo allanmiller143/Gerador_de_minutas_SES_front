@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import "./RichTextEditor.css";
+import { StandardTextPicker } from "./StandardTextPicker";
 
 interface RichTextEditorProps {
   value: string;
@@ -70,6 +71,11 @@ export const RichTextEditor = ({
       editor.commands.setContent(value || "");
     }
   }, [value, editor, readOnly]);
+
+  const insertStandardText = (conteudo: string) => {
+    if (!editor) return;
+    editor.chain().focus().insertContent(conteudo).run();
+  };
 
   const ToolbarButton = ({
     onClick,
@@ -177,6 +183,10 @@ export const RichTextEditor = ({
               icon={Redo2}
               title="Refazer (Ctrl+Y)"
             />
+
+            <div className="toolbar-divider" />
+
+            <StandardTextPicker onInsert={insertStandardText} />
           </>
         )}
 

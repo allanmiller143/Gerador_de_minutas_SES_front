@@ -9,6 +9,7 @@ const items: { to: string; label: string; icon: typeof Home; end?: boolean; role
   { to: "/seis", label: "SEIs", icon: FileText },
   { to: "/minhas-analises", label: "Minhas Análises", icon: ClipboardList },
   { to: "/remetentes", label: "Remetentes", icon: UserCheck },
+  { to: "/textos-padroes", label: "Textos Padrões", icon: FileText },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3, roles: ["administrador"] },
   { to: "/resumo-batch", label: "Rotina de Resumos", icon: Timer, roles: ["administrador"] },
   { to: "/knowledge-base", label: "Base de Conhecimento", icon: FileText },
