@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useGenerateResumo, useRestoreResumo, useResumoVersions, useSeiDetail, useSeiResumoTecnico, useUpdateProcesso } from "@/services/domainData";
-import { RichTextEditor } from "@/components/RichTextEditor";
+import { RichTextEditor, RichTextEditorRef } from "@/components/RichTextEditor";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Check, CheckCircle2, Save, Lock, Bot, Sparkles, FileText, RotateCcw, Loader2, Download, AlertTriangle, BookOpen, ExternalLink, FileStack } from "lucide-react";
@@ -48,21 +48,19 @@ const Minutador = () => {
   const { user } = useAuth();
   const { getDraft, saveDraft, finalizeDraft } = useDrafts();
 
-  // Support string or number IDs safely
   const existingDraft = useMemo(() => {
     if (!sei) return undefined;
     return getDraft(sei.id) || getDraft(Number(sei.id));
   }, [sei, getDraft]);
 
   const [minuta, setMinuta] = useState("");
+  const editorRef = useRef<RichTextEditorRef>(null);
 
-  // Mutação para chamar o serviço Gemini IA
   const { mutateAsync: analisarProcesso, isPending: isAnalyzing } = useAnalisarProcesso();
   const updateProcesso = useUpdateProcesso(id);
 
   const [isDownloading, setIsDownloading] = useState(false);
 
-  // Limpa o nome do arquivo, removendo caminhos e o prefixo do UUID
   const cleanFilename = (path: string) => {
     if (!path) return "";
     const parts = path.split("/");
@@ -109,11 +107,10 @@ const Minutador = () => {
     if (!sei) return;
     try {
       toast.info("Iniciando a geração da minuta com o Gemini... Isso pode levar alguns segundos.");
-      
-      // Mudança aqui: passando um objeto com o ID e a flag 'apenasMinuta'
-      const updatedSei = await analisarProcesso({ 
-        id: Number(sei.id), 
-        apenasMinuta: true 
+
+      const updatedSei = await analisarProcesso({
+        id: Number(sei.id),
+        apenasMinuta: true
       });
 
       if (updatedSei) {
@@ -155,7 +152,6 @@ const Minutador = () => {
     if (sei.fontes_consultadas_detalhadas && sei.fontes_consultadas_detalhadas.length > 0) {
       return sei.fontes_consultadas_detalhadas;
     }
-    // Fallback para quando o array detalhado ainda não estiver carregado
     return (sei.jurisprudenciasSugeridas || [])
       .filter((item) => typeof item === "string" && (!item.startsWith("j") || item.length > 3))
       .map((texto) => {
@@ -174,7 +170,6 @@ const Minutador = () => {
       });
   }, [sei]);
 
-  // Adicione o estado para controlar o carregamento do envio ao SEI
   const [isSendingSEI, setIsSendingSEI] = useState(false);
   const handleFinalizeAndSendSEI = async () => {
     if (!user || !sei) return;
@@ -188,8 +183,6 @@ const Minutador = () => {
     setIsSendingSEI(true);
     try {
       toast.info("Iniciando a criação do documento no SEI via robô... Por favor, aguarde.");
-
-      // Salva a minuta localmente no rascunho
       saveDraft({
         seiId: sei.id,
         minuta,
@@ -197,10 +190,7 @@ const Minutador = () => {
         ownerName: effectiveOwnerName,
         foiAlterado: mudouOTexto
       });
-
-      // Invoca o backend/RPA
       await enviarParaSEI(sei.id, minuta);
-
       finalizeDraft(sei.id, user.name);
       queryClient.invalidateQueries({ queryKey: domainDataQueryKeys.seiDetail(id) });
       toast.success("Documento criado no SEI e análise concluída com sucesso!");
@@ -211,7 +201,6 @@ const Minutador = () => {
       setIsSendingSEI(false);
     }
   };
-
 
   if (isLoading) {
     return (
@@ -249,9 +238,7 @@ const Minutador = () => {
   const handleSaveDraft = async () => {
     if (!user) return;
     if (isLockedByOther) { toast.error("Esta análise pertence a outro usuário."); return; }
-
     const mudouOTexto = normalizar(minuta) !== normalizar(minutaOriginal);
-
     saveDraft({
       seiId: sei.id,
       minuta,
@@ -259,7 +246,6 @@ const Minutador = () => {
       ownerName: effectiveOwnerName,
       foiAlterado: mudouOTexto
     });
-
     try {
       await updateProcesso.mutateAsync({
         minuta,
@@ -276,17 +262,14 @@ const Minutador = () => {
   const handleFinalize = async () => {
     if (!user) return;
     if (isLockedByOther) { toast.error("Esta análise pertence a outro usuário."); return; }
-
     const mudouOTexto = normalizar(minuta) !== normalizar(minutaOriginal);
-
     saveDraft({
       seiId: sei.id,
       minuta,
       ownerEmail: effectiveOwnerEmail,
       ownerName: effectiveOwnerName,
       foiAlterado: mudouOTexto
-    });
-
+      });
     try {
       await updateProcesso.mutateAsync({
         status: "Concluído",
@@ -329,10 +312,8 @@ const Minutador = () => {
           <AlertTriangle className="h-5 w-5 shrink-0" />
           <div className="text-sm">
             <span className="font-semibold">Falha na análise em background:</span> Ocorreu um erro ao gerar a minuta ou o resumo técnico. Você pode tentar analisar com Gemini novamente.
-          </div>
-        </div>
+          </div></div>
       )}
-      {/* Stepper */}
       <div className="bg-card border border-border rounded-xl shadow-card p-6 mb-6">
         <div className="flex items-center justify-between">
           {etapas.map((label, i) => {
@@ -345,8 +326,8 @@ const Minutador = () => {
                     "h-9 w-9 rounded-full flex items-center justify-center font-semibold text-sm transition-colors",
                     complete ? "bg-success text-success-foreground" :
                       active ? "bg-primary text-primary-foreground ring-4 ring-primary/20" :
-                        "bg-secondary text-muted-foreground"
-                  )}>
+                      "bg-secondary text-muted-foreground"
+                    )}>
                     {complete ? <Check className="h-4 w-4" /> : i + 1}
                   </div>
                   <div className={cn("mt-2 text-xs font-medium max-w-[110px]", active ? "text-foreground" : "text-muted-foreground")}>
@@ -384,7 +365,7 @@ const Minutador = () => {
           {isAdmin && existingDraft && user && existingDraft.ownerEmail !== user.email && !isFinalized && (
             <div className="mb-4 rounded-lg border border-primary/30 bg-accent/60 text-accent-foreground px-4 py-3 text-sm flex items-center gap-2">
               <Lock className="h-4 w-4 text-primary" />
-              Edição administrativa: você está modificando a análise de <strong className="mx-1">{existingDraft.ownerName}</strong>. A autoria será preservada.
+              Edição administrativa: você está modificando a análise de <strong className="mx-1">{existingDraft?.ownerName}</strong>. A autoria será preservada.
             </div>
           )}
 
@@ -401,7 +382,7 @@ const Minutador = () => {
                 <div className="mb-3">
                   <div className="flex flex-col md:flex-row md:items-center gap-3 mb-1 justify-between">
                     <h2 className="font-semibold">Resumo técnico preliminar</h2>
-                    
+
                     <div className="flex flex-wrap items-center gap-2">
                       <Button size="sm" variant="outline" onClick={handleGenerateResumo} disabled={generateResumo.isPending || isResumoLoading}>
                         {generateResumo.isPending || isResumoLoading ? (
@@ -411,7 +392,7 @@ const Minutador = () => {
                         )}
                         {generateResumo.isPending || isResumoLoading ? "Gerando..." : "Gerar novamente"}
                       </Button>
-                      
+
                       <PromptEditorDialog />
                     </div>
                   </div>
@@ -464,7 +445,7 @@ const Minutador = () => {
                           <dt className="text-xs text-muted-foreground">Diagnóstico informado</dt>
                           <dd>{resumoProcesso?.diagnostico_informado ?? "Não informado"}</dd>
                         </div>
-                        <div>
+                        <div className="flex flex-col">
                           <dt className="text-xs text-muted-foreground">Confiança da IA</dt>
                           <dd>{Math.round(sei.iaConfidence * 100)}%</dd>
                         </div>
@@ -474,7 +455,6 @@ const Minutador = () => {
                         </div>
                       </dl>
                     </section>
-
                     <section>
                       <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Confronto com documentação de suporte</h3>
                       <div className="space-y-2">
@@ -485,7 +465,6 @@ const Minutador = () => {
                         </ul>
                       </div>
                     </section>
-
                     <section>
                       <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Insumo para parecer</h3>
                       <div className="space-y-2">
@@ -503,31 +482,29 @@ const Minutador = () => {
                         {insumoParecer?.fundamentos && insumoParecer.fundamentos.length > 0 && (
                           <div>
                             <div className="text-xs text-muted-foreground">Fundamentos</div>
-                            <ul className="list-disc pl-5 space-y-1">{insumoParecer.fundamentos.map((item) => <li key={item}>{item}</li>)}</ul>
+                            <ul className="list-disc pl-5 space-y-1">{insumoParecer.fundamentos.map((item) => <li key={item} />)}</ul>
                           </div>
                         )}
                         {insumoParecer?.alternativas_orientaveis && insumoParecer.alternativas_orientaveis.length > 0 && (
                           <div>
                             <div className="text-xs text-muted-foreground">Alternativas orientáveis</div>
-                            <ul className="list-disc pl-5 space-y-1">{insumoParecer.alternativas_orientaveis.map((item) => <li key={item}>{item}</li>)}</ul>
+                            <ul className="list-disc pl-5 space-y-1">{insumoParecer.alternativas_orientaveis.map((item) => <li key={item} />)}</ul>
                           </div>
                         )}
                         {insumoParecer?.pendencias_documentais && insumoParecer.pendencias_documentais.length > 0 && (
                           <div>
                             <div className="text-xs text-muted-foreground">Pendências documentais</div>
-                            <ul className="list-disc pl-5 space-y-1">{insumoParecer.pendencias_documentais.map((item) => <li key={item}>{item}</li>)}</ul>
+                            <ul className="list-disc pl-5 space-y-1">{insumoParecer.pendencias_documentais.map((item) => <li key={item} />)}</ul>
                           </div>
                         )}
                       </div>
                     </section>
-
                     <section>
                       <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Fontes consultadas</h3>
                       <ul className="list-disc pl-5 space-y-1">
                         {(resumoTecnico.fontes_consultadas ?? []).map((item) => <li key={item}>{item}</li>)}
                       </ul>
                     </section>
-
                     <section>
                       <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Documento PDF</h3>
                       {sei.documentoPdf ? (
@@ -549,15 +526,15 @@ const Minutador = () => {
                     <div className="space-y-2">
                       {resumoVersions.map((version) => (
                         <div key={version.id} className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                          <span>
-                            Versão #{version.version} · {new Date(version.generated_at).toLocaleString("pt-BR")} · {version.generated_by}
-                            {version.is_active ? " · ativa" : ""}
-                          </span>
-                          {!version.is_active && (
-                            <Button size="sm" variant="ghost" onClick={() => handleRestoreResumo(version.id)} disabled={restoreResumo.isPending}>
-                              Restaurar
-                            </Button>
-                          )}
+                        <span>
+                          Versão #{version.version}, gerada em {new Date(version.generated_at).toLocaleString("pt-BR")} uma vez por {version.generated_by}.
+                          {version.is_active ? " · ativa" : ""}
+                        </span>
+                        {!version.is_active && (
+                          <Button size="sm" variant="ghost" onClick={() => handleRestoreResumo(version.id)} disabled={restoreResumo.isPending}>
+                            Restaurar
+                          </Button>
+                        )}
                         </div>
                       ))}
                     </div>
@@ -565,16 +542,15 @@ const Minutador = () => {
                 )}
               </div>
             </TabsContent>
-
             <TabsContent value="minuta" className="mt-0">
               {isResumoLoading ? (
                 <div className="rounded-lg border border-primary/30 bg-primary/5 p-6 text-center space-y-3">
-                  <div className="flex items-center justify-center gap-2">
-                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                    <p className="font-semibold text-primary">Carregando evidências...</p>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Aguarde o carregamento completo das evidências e jurisprudências para começar a editar a minuta.</p>
+                <div className="flex items-center justify-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <p className="font-semibold text-primary">Carregando evidências...</p>
                 </div>
+                <p className="text-xs text-muted-foreground">Aguarde o carregamento completo das evidências e jurisprudências para começar a editar a minuta.</p>
+              </div>
               ) : (
                 <>
                   <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-4">
@@ -606,10 +582,9 @@ const Minutador = () => {
                         <Button size="sm" onClick={handleFinalize} disabled={isAnalyzing}>
                           <CheckCircle2 className="h-4 w-4 mr-2" /> Finalizar análise
                         </Button>
-                        
-                        <Button 
-                          size="sm" 
-                          onClick={handleFinalizeAndSendSEI} 
+                        <Button
+                          size="sm"
+                          onClick={handleFinalizeAndSendSEI}
                           disabled={isAnalyzing || isSendingSEI || readOnly}
                         >
                           {isSendingSEI ? (
@@ -641,6 +616,7 @@ const Minutador = () => {
                   )}
 
                   <RichTextEditor
+                    ref={editorRef}
                     value={minuta}
                     onChange={setMinuta}
                     readOnly={readOnly || isAnalyzing}
@@ -652,8 +628,6 @@ const Minutador = () => {
             </TabsContent>
           </Tabs>
         </section>
-
-        
         <div className="space-y-6">
           <ChatProcessoPanel processoId={sei.id} />
           <div className="bg-card border border-border rounded-xl shadow-card p-5">
@@ -667,7 +641,7 @@ const Minutador = () => {
                 const cores = {
                   "fácil": "bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-200",
                   "médio": "bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200",
-                  "difícil": "bg-red-100 text-red-800 border-red-300 hover:bg-red-200",
+                  "difícil": "bg-red-100 text-red-800 border-amber-300 hover:bg-red-200",
                 };
                 const selecionado = sei.complexidade === nivel;
                 return (
@@ -691,21 +665,21 @@ const Minutador = () => {
                   </button>
                 );
               })}
+            </div>
+
+            {sei.complexidade_justificativa && (
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                <span className="font-semibold text-foreground">Justificativa da IA: </span>
+                {sei.complexidade_justificativa}
+              </p>
+            )}
+
+            {!sei.complexidade && (
+              <p className="text-xs text-muted-foreground italic">
+                A IA ainda não classificou este processo. Selecione manualmente acima.
+              </p>
+            )}
           </div>
-
-          {sei.complexidade_justificativa && (
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              <span className="font-semibold text-foreground">Justificativa da IA: </span>
-              {sei.complexidade_justificativa}
-            </p>
-          )}
-
-          {!sei.complexidade && (
-            <p className="text-xs text-muted-foreground italic">
-              A IA ainda não classificou este processo. Selecione manualmente acima.
-            </p>
-          )}
-        </div>
           <aside className="bg-card border border-border rounded-xl shadow-card p-5 h-fit space-y-6">
             {sei.arquivoPdf && (
               <div>
@@ -730,13 +704,12 @@ const Minutador = () => {
                     className="w-full bg-background hover:bg-secondary border-border shadow-sm flex items-center justify-center gap-2"
                   >
                     <Download className={cn("h-4 w-4", isDownloading && "animate-pulse")} />
-                    {isDownloading ? "Baixando..." : "Baixar PDF Original"}
-                  </Button>
+                      Baixar PDF Original
+                    </Button>
                 </div>
               </div>
             )}
 
-            {/* Evidências clínicas */}
             {resumoTecnico && (
               <div>
                 <div className="flex items-center gap-2 mb-3">
@@ -746,7 +719,6 @@ const Minutador = () => {
                 <p className="text-xs text-muted-foreground mb-4">
                   Informações-chave extraídas dos relatórios médicos.
                 </p>
-
                 <div className="space-y-4">
                   {resumoTecnico?.evidencias_clinicas_do_processo && resumoTecnico.evidencias_clinicas_do_processo.length > 0 && (
                     <div>
@@ -763,7 +735,7 @@ const Minutador = () => {
 
                   {confronto?.observacoes && confronto.observacoes.length > 0 && (
                     <div>
-                      <div className="text-xs font-semibold mb-2 text-primary">Observações</div>
+                      <div className="text-xs font-semibold mb-2 text-primary">Observações do confronto</div>
                       <ul className="space-y-2">
                         {confronto.observacoes.map((item, idx) => (
                           <li key={idx} className="border border-border/50 rounded-lg p-2 bg-secondary/10 text-xs hover:bg-secondary/20 transition-colors">
@@ -789,7 +761,7 @@ const Minutador = () => {
 
                   {insumoParecer?.alternativas_orientaveis && insumoParecer.alternativas_orientaveis.length > 0 && (
                     <div>
-                      <div className="text-xs font-semibold mb-2 text-primary">Alternativas</div>
+                      <div className="text-xs font-semibold mb-2 text-primary">Alternativas orientáveis</div>
                       <ul className="space-y-2">
                         {insumoParecer.alternativas_orientaveis.map((item, idx) => (
                           <li key={idx} className="border border-border/50 rounded-lg p-2 bg-secondary/10 text-xs hover:bg-secondary/20 transition-colors">
@@ -805,7 +777,7 @@ const Minutador = () => {
                       <div className="text-xs font-semibold mb-2 text-destructive">Pendências</div>
                       <ul className="space-y-2">
                         {insumoParecer.pendencias_documentais.map((item, idx) => (
-                          <li key={idx} className="border border-destructive/30 rounded-lg p-2 bg-destructive/10 text-xs hover:bg-destructive/20 transition-colors">
+                          <li key={idx} className="border border-destructive/30 rounded-lg p-2 bg-destructive/10 text-xs hover:bg-secondary/20 transition-colors">
                             <p className="line-clamp-3">{item}</p>
                           </li>
                         ))}
@@ -816,7 +788,6 @@ const Minutador = () => {
               </div>
             )}
 
-            {/* Fontes e Diretrizes Consultadas */}
             {fontesConsultadas.length > 0 && (
               <div className="border-t border-border pt-4">
                 <div className="flex items-center gap-2 mb-2">
@@ -825,7 +796,7 @@ const Minutador = () => {
                 </div>
                 <p className="text-xs text-muted-foreground mb-3">
                   Documentos e normas técnicas identificados pela IA para fundamentar esta minuta.
-                </p>
+                  </p>
                 <ul className="space-y-2">
                   {fontesConsultadas.map((fonte, idx) => {
                     const isProcessDoc = fonte.tipo === "processo";
@@ -859,20 +830,19 @@ const Minutador = () => {
                             </span>
                           </div>
                         </div>
-
                         {fonte.tem_arquivo ? (
                           isProcessDoc ? (
                             sei?.arquivoPdf ? (
                               <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={handleDownloadPDF}
-                                disabled={isDownloading}
-                                className="h-7 w-7 shrink-0 text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 transition-all"
-                                title="Baixar PDF dos autos do processo"
-                              >
-                                <Download className={cn("h-3.5 w-3.5", isDownloading && "animate-pulse")} />
-                              </Button>
+                              variant="ghost"
+                              size="icon"
+                              onClick={handleDownloadPDF}
+                              disabled={isDownloading}
+                              className="h-7 w-7 shrink-0 text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 transition-all"
+                              title="Baixar PDF dos autos do processo"
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                            </Button>
                             ) : null
                           ) : (
                             <Button
@@ -880,19 +850,18 @@ const Minutador = () => {
                               size="icon"
                               onClick={() => handleDownloadKB(fonte.file_path || fonte.texto)}
                               disabled={isDownloadingThis}
-                              className="h-7 w-7 shrink-0 text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10 transition-all"
+                              className="h-7 w-7 shrink-to-fit text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10 transition-all"
                               title={`Baixar ${displayName}`}
                             >
-                              <Download className={cn("h-3.5 w-3.5", isDownloadingThis && "animate-pulse")} />
+                              <Download className="h-3.5 w-3.5" />
                             </Button>
                           )
                         ) : (
-                          <span
-                            className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-muted/60 text-muted-foreground shrink-0 cursor-help"
-                            title="A IA utilizou esta norma oficial para embasar o parecer técnico. O arquivo PDF correspondente ainda não foi adicionado à Base de Conhecimento."
-                          >
-                            Citação
-                          </span>
+                        <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-muted/60 text-muted-foreground shrink-0 cursor-help"
+                        title="A IA utilizou esta norma oficial para embasar o parecer técnico. Esse arquivo PDF correspondente ainda não foi adicionado à Base de Conhecimento."
+                        >
+                        Citação
+                        </span>
                         )}
                       </li>
                     );
@@ -909,7 +878,6 @@ const Minutador = () => {
                 </div>
               </div>
             )}
-
           </aside>
         </div>
       </div>

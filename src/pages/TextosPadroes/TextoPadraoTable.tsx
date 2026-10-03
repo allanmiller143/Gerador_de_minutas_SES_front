@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   Table,
   TableBody,
@@ -48,9 +48,8 @@ export function TextoPadraoTable({ data = [], categorias = [], onEdit, onDelete 
             const isExpanded = expandedRows[item.id];
 
             return (
-              <>
+              <React.Fragment key={item.id}>
                 <TableRow
-                  key={item.id}
                   className={cn(
                     "transition-colors",
                     isExpanded && "bg-muted/20"
@@ -105,7 +104,7 @@ export function TextoPadraoTable({ data = [], categorias = [], onEdit, onDelete 
                     </TableCell>
                   </TableRow>
                 )}
-              </>
+              </React.Fragment>
             );
           })}
         </TableBody>
