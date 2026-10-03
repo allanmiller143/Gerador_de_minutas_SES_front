@@ -19,6 +19,7 @@ import ReactMarkdown from "react-markdown";
 import { PromptEditorDialog } from "./Resumo_Minuta/PromptEditorDialog";
 import { getProcessosPollingInterval, isFailedStatus, isProcessingStatus } from "@/lib/processStatus";
 import { ChatProcessoPanel } from "./Resumo_Minuta/ChatProcessoPanel";
+import { marked } from "marked";
 
 const etapas = ["Pré-análise", "Jurisprudências", "Minuta gerada", "Revisão humana"];
 
@@ -189,7 +190,6 @@ const Minutador = () => {
     try {
       toast.info("Iniciando a criação do documento no SEI via robô... Por favor, aguarde.");
 
-      // Salva a minuta localmente no rascunho
       saveDraft({
         seiId: sei.id,
         minuta,
@@ -198,8 +198,14 @@ const Minutador = () => {
         foiAlterado: mudouOTexto
       });
 
-      // Invoca o backend/RPA
-      await enviarParaSEI(sei.id, minuta);
+      //Converte o Markdown do editor para HTML.
+      const htmlFormatado = await marked.parse(minuta, {
+        breaks: true,
+        gfm: true,
+      });
+
+      //Invoca o backend/RPA passando a minuta formatada em HTML.
+      await enviarParaSEI(sei.id, htmlFormatado);
 
       finalizeDraft(sei.id, user.name);
       queryClient.invalidateQueries({ queryKey: domainDataQueryKeys.seiDetail(id) });
