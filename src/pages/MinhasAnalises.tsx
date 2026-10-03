@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
-
 import { PriorityBadge, StatusBadge, RemetenteBadge } from "@/components/shared/Badges";
 import { SortableHeader, sortProcessos, SortConfig } from "@/components/shared/SortableHeader";
 import { TablePagination } from "@/components/shared/TablePagination";
@@ -14,6 +13,7 @@ import { useProcessos } from "@/hooks/useProcessos";
 import { useRemetentes } from "@/hooks/useRemetentes";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageTutorialWizard, TutorialStep } from "@/components/shared/PageTutorialWizard";
+
 
 const MINHAS_ANALISES_TUTORIAL_STEPS: TutorialStep[] = [
   {
@@ -50,9 +50,9 @@ const MINHAS_ANALISES_TUTORIAL_STEPS: TutorialStep[] = [
   },
 ];
 
-const MinhasAnalises = () => {
+const MinhasAnalises = () => { 
   const { user } = useAuth();
-  const { drafts } = useDrafts();
+  const { drafts, getEvents } = useDrafts();
   const { data: processos, isLoading, error } = useProcessos();
   const { remetentes } = useRemetentes();
   const [numeroFilter, setNumeroFilter] = useState("");
@@ -146,6 +146,35 @@ const MinhasAnalises = () => {
               paginatedMinhas.map((s, index) => {
                 const draft = drafts[s.id];
                 const finalized = draft?.status === "Concluído";
+
+                let daysInReview = undefined;
+                if (!finalized && draft) {
+                  const draftEvents = getEvents(s.id);
+                  
+                  //Tenta achar o evento de início.
+                  let startedAt = draftEvents.find((e) => e.type === "review_started")?.at;
+                  
+                  //Se não tiver o evento de início, pega o 1º evento de qualquer tipo registrado.
+                  if (!startedAt && draftEvents.length > 0) {
+                    startedAt = draftEvents[0].at;
+                  }
+                  
+                  //Se não houver evento nenhum, pega a data de atualização do rascunho.
+                  if (!startedAt) {
+                    startedAt = draft.updatedAt;
+                  }
+
+                  if (startedAt) {
+                    const startedDate = new Date(startedAt);
+                    const today = new Date();
+                    
+                    startedDate.setHours(0, 0, 0, 0);
+                    today.setHours(0, 0, 0, 0);
+                    
+                    const diffTime = today.getTime() - startedDate.getTime();
+                    daysInReview = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                  }
+                }
                 return (
                   <tr key={s.id} className="border-t border-border hover:bg-secondary/40">
                     <td className="px-5 py-3 font-mono text-xs">
@@ -166,7 +195,10 @@ const MinhasAnalises = () => {
                     )}
                   </td>
                     <td className="px-5 py-3">
-                      <StatusBadge value={finalized ? "Concluído" : "Em revisão"} />
+                      <StatusBadge 
+                        value={finalized ? "Concluído" : "Em revisão"} 
+                        daysInReview={daysInReview} 
+                      />
                     </td>
                     <td
                       data-tour={index === 0 ? "action-analise" : undefined}
