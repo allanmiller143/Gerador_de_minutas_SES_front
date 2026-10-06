@@ -100,6 +100,17 @@ const resumoPayload = {
 const jsonResponse = (payload: unknown) =>
   new Response(JSON.stringify(payload), { status: 200, headers: { "Content-Type": "application/json" } });
 
+const standardTextsPayload = [
+  {
+    id: 1,
+    titulo: "Saudação Formal",
+    conteudo: "Prezado(a) Senhor(a), Cumprimentando-o(a) cordialmente, dirijo-me a Vossa Senhoria para tratar de...",
+    categoriaId: 1,
+  },
+];
+
+const standardCategoriesPayload = [{ id: 1, nome: "Saudações" }];
+
 const renderMinutador = () => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -133,6 +144,14 @@ describe("Minutador", () => {
       "fetch",
       vi.fn(async (input: RequestInfo | URL) => {
         const url = input instanceof Request ? input.url : String(input);
+        if (url.endsWith("/textos-padroes/")) {
+          return jsonResponse(standardTextsPayload);
+        }
+
+        if (url.endsWith("/categorias-textos-padroes/")) {
+          return jsonResponse(standardCategoriesPayload);
+        }
+
         if (url.endsWith("/api/seis/1/resumo-tecnico")) {
           return new Promise<Response>((resolve) => {
             resolveResumoRequest = resolve;
@@ -231,4 +250,69 @@ describe("Minutador", () => {
     expect(documentoPdf.compareDocumentPosition(gerarNovamente) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
     expect(documentoPdf.compareDocumentPosition(versoesAnteriores) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
+
+  it("insere texto padrão pelo menu de contexto do editor", async () => {
+    renderMinutador();
+
+    await waitFor(() => expect(resolveResumoRequest).toBeTypeOf("function"));
+    await act(async () => {
+      resolveResumoRequest?.(jsonResponse(resumoPayload));
+    });
+
+    const minutaTab = await screen.findByRole("tab", { name: "Minuta" });
+    fireEvent.mouseDown(minutaTab, { button: 0, ctrlKey: false });
+    fireEvent.click(minutaTab);
+
+    const editorSurface = await waitFor(() => {
+      const surface = document.querySelector(".rich-text-content");
+      expect(surface).toBeTruthy();
+      return surface as HTMLElement;
+    });
+
+    if (typeof globalThis.DOMRect?.fromRect !== "function") {
+      Object.defineProperty(globalThis, "DOMRect", {
+        configurable: true,
+        value: {
+          fromRect: ({ x = 0, y = 0, width = 0, height = 0 }: DOMRectInit = {}) => ({
+            x,
+            y,
+            width,
+            height,
+            top: y,
+            right: x + width,
+            bottom: y + height,
+            left: x,
+          }),
+        },
+      });
+    }
+    if (typeof Range.prototype.getClientRects !== "function") {
+      Object.defineProperty(Range.prototype, "getClientRects", {
+        configurable: true,
+        value: () => [],
+      });
+    }
+    if (typeof Range.prototype.getBoundingClientRect !== "function") {
+      Object.defineProperty(Range.prototype, "getBoundingClientRect", {
+        configurable: true,
+        value: () => ({ top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 }),
+      });
+    }
+
+    fireEvent.contextMenu(editorSurface, { clientX: 20, clientY: 20 });
+
+    const standardText = await screen.findByRole("menuitem", { name: "Saudação Formal" });
+    fireEvent.pointerEnter(standardText);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Prezado\(a\) Senhor\(a\), Cumprimentando-o\(a\)/)).toBeTruthy();
+    });
+
+    fireEvent.click(standardText);
+
+    await waitFor(() => {
+      expect(document.querySelector(".ProseMirror")?.textContent).toContain("Prezado(a) Senhor(a)");
+      expect(screen.queryByText("Inserir texto padrão")).toBeNull();
+    });
+  }, 10000);
 });

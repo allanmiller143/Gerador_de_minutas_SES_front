@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useImperativeHandle, forwardRef, useRef } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Markdown } from "tiptap-markdown";
@@ -16,9 +16,17 @@ import {
   Redo2,
   Code2,
   Eye,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import "./RichTextEditor.css";
+import { StandardTextPicker } from "./StandardTextPicker";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuLabel,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 
 interface RichTextEditorProps {
   value: string;
@@ -28,14 +36,20 @@ interface RichTextEditorProps {
   minHeight?: string;
 }
 
-export const RichTextEditor = ({
+export interface RichTextEditorRef {
+  insertStandardText: (conteudo: string) => void;
+}
+
+export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>(({
   value,
   onChange,
   readOnly = false,
   placeholder = "Digite a minuta em Markdown...",
   minHeight = "420px",
-}: RichTextEditorProps) => {
+}, ref) => {
   const [mode, setMode] = useState<"visual" | "code">("visual");
+  const [contextMenuOpen, setContextMenuOpen] = useState(false);
+  const contextMenuSelection = useRef<{ from: number; to: number } | null>(null);
 
   const editor = useEditor({
     extensions: [
@@ -70,6 +84,39 @@ export const RichTextEditor = ({
       editor.commands.setContent(value || "");
     }
   }, [value, editor, readOnly]);
+
+  useImperativeHandle(ref, () => ({
+    insertStandardText: (conteudo: string) => {
+      if (!editor) return;
+      editor.chain().focus().insertContent(conteudo).run();
+    },
+  }));
+
+  const captureContextMenuSelection = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!editor) return;
+
+    let { from, to } = editor.state.selection;
+    if (from === to && typeof document.elementFromPoint === "function") {
+      const position = editor.view.posAtCoords({ left: event.clientX, top: event.clientY });
+      if (position) {
+        from = position.pos;
+        to = position.pos;
+        editor.commands.setTextSelection(from);
+      }
+    }
+    contextMenuSelection.current = { from, to };
+  };
+
+  const insertStandardText = (text: string) => {
+    if (!editor) return;
+
+    const selection = contextMenuSelection.current;
+    const chain = editor.chain().focus();
+    if (selection) chain.setTextSelection(selection);
+    chain.insertContent(text).run();
+    contextMenuSelection.current = null;
+    setContextMenuOpen(false);
+  };
 
   const ToolbarButton = ({
     onClick,
@@ -171,12 +218,15 @@ export const RichTextEditor = ({
               onClick={() => editor.chain().focus().undo().run()}
               icon={Undo2}
               title="Desfazer (Ctrl+Z)"
+              isActive={false}
             />
             <ToolbarButton
               onClick={() => editor.chain().focus().redo().run()}
               icon={Redo2}
               title="Refazer (Ctrl+Y)"
+              isActive={false}
             />
+
           </>
         )}
 
@@ -203,11 +253,26 @@ export const RichTextEditor = ({
       </div>
 
       {mode === "visual" ? (
-        <EditorContent
-          editor={editor}
-          className="rich-text-content"
-          style={{ minHeight }}
-        />
+        !readOnly && editor ? (
+          <ContextMenu open={contextMenuOpen} onOpenChange={setContextMenuOpen}>
+            <ContextMenuTrigger asChild onContextMenuCapture={captureContextMenuSelection}>
+              <div className="rich-text-content" style={{ minHeight }}>
+                <EditorContent editor={editor} />
+              </div>
+            </ContextMenuTrigger>
+            <ContextMenuContent className="w-72 p-2">
+              <ContextMenuLabel className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Inserir texto padrão
+              </ContextMenuLabel>
+              <StandardTextPicker onInsert={insertStandardText} />
+            </ContextMenuContent>
+          </ContextMenu>
+        ) : (
+          <div className="rich-text-content" style={{ minHeight }}>
+            <EditorContent editor={editor} />
+          </div>
+        )
       ) : (
         <textarea
           value={value}
@@ -220,4 +285,6 @@ export const RichTextEditor = ({
       )}
     </div>
   );
-};
+});
+
+RichTextEditor.displayName = "RichTextEditor";

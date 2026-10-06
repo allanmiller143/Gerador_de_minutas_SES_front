@@ -29,8 +29,11 @@ export const ChatProcessoPanel = ({ processoId }: ChatProcessoPanelProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({
-      top: scrollRef.current.scrollHeight,
+    const scrollContainer = scrollRef.current;
+    if (!scrollContainer || typeof scrollContainer.scrollTo !== "function") return;
+
+    scrollContainer.scrollTo({
+      top: scrollContainer.scrollHeight,
       behavior: "smooth",
     });
   }, [conversa, isSending]);
