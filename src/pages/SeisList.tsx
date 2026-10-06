@@ -62,6 +62,31 @@ const SEIS_LIST_TUTORIAL_STEPS: TutorialStep[] = [
   },
 ];
 
+
+//Calcula se o processo chegou com prazo curto.
+const verificarProrrogacao = (dataRecebimento?: string, dataVencimento?: string) => {
+  if (!dataRecebimento || !dataVencimento) return false;
+  
+  const parseDate = (dateStr: string) => {
+    if (dateStr.includes('/')) {
+      const [day, month, year] = dateStr.split(' ')[0].split('/');
+      return new Date(Number(year), Number(month) - 1, Number(day));
+    }
+    return new Date(dateStr);
+  };
+
+  const dtRec = parseDate(dataRecebimento);
+  const dtVenc = parseDate(dataVencimento);
+  
+  if (isNaN(dtRec.getTime()) || isNaN(dtVenc.getTime())) return false;
+
+  const diffTempo = dtVenc.getTime() - dtRec.getTime();
+  const diffDias = Math.ceil(diffTempo / (1000 * 60 * 60 * 24));
+
+  return diffDias <= 3;
+};
+
+
 const SeisList = () => {
   const { data: processos, isLoading, error } = useProcessos();
   const { remetentes } = useRemetentes();
@@ -246,9 +271,20 @@ const SeisList = () => {
                     <td className="px-5 py-3 whitespace-nowrap"><PriorityBadge value={s.prioridade} /></td>
                     <td className="px-5 py-3 whitespace-nowrap font-medium">
                       {s.dias_restantes !== null && s.dias_restantes !== undefined ? (
-                        <span className={s.dias_restantes < 0 ? "text-red-500" : s.dias_restantes === 0 ? "text-orange-500" : "text-muted-foreground"}>
-                          {s.dias_restantes < 0 ? "Vencido" : s.dias_restantes === 0 ? "Vence hoje" : `${s.dias_restantes} dias`}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className={s.dias_restantes < 0 ? "text-red-500" : s.dias_restantes === 0 ? "text-orange-500" : "text-muted-foreground"}>
+                            {s.dias_restantes < 0 ? "Vencido" : s.dias_restantes === 0 ? "Vence hoje" : `${s.dias_restantes} dias`}
+                          </span>
+                          
+                          {verificarProrrogacao(s.dataRecebimento, s.data_vencimento) && s.dias_restantes >= 0 && s.dias_restantes <= 3 && (
+                            <span 
+                              title="Processo com pouco tempo de resposta, recomendado pedir prorrogação."
+                              className="cursor-help text-base leading-none"
+                            >
+                              ⚠️️
+                            </span>
+                          )}
+                        </div>
                       ) : (
                         <span className="text-muted-foreground/50">Sem prazo</span>
                       )}
