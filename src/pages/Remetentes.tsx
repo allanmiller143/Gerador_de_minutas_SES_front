@@ -74,6 +74,7 @@ const INITIAL_FORM: RemetenteInput = {
   nome_completo: "",
   sigla: "",
   cor: "#3B82F6",
+  prioridade: "Média",
 };
 
 const REMETENTES_TUTORIAL_STEPS: TutorialStep[] = [
@@ -179,6 +180,7 @@ export default function Remetentes() {
       nome_completo: remetente.nome_completo,
       sigla: remetente.sigla,
       cor: remetente.cor,
+      prioridade: remetente.prioridade || "Média",
     });
     setIsFormOpen(true);
   };
@@ -332,6 +334,7 @@ export default function Remetentes() {
                       <TableHead className="w-[140px]">Prefixo</TableHead>
                       <TableHead>Nome Completo</TableHead>
                       <TableHead className="w-[140px]">Sigla</TableHead>
+                      <TableHead className="w-[100px]">Prioridade</TableHead>
                       <TableHead className="w-[120px] text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -354,6 +357,11 @@ export default function Remetentes() {
                           >
                             {remetente.sigla}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-xs font-medium text-muted-foreground">
+                            {remetente.prioridade || "Média"}
+                          </span>
                         </TableCell>
                         <TableCell className="text-right space-x-1">
                           <Button
@@ -480,6 +488,28 @@ export default function Remetentes() {
                     </Badge>
                   </div>
                 </div>
+
+                {/* Seletor de Prioridade */}
+                <div className="space-y-2 pt-2">
+                  <Label>Prioridade *</Label>
+                  <div className="flex gap-2">
+                    {(["Máxima", "Alta", "Média", "Baixa"] as const).map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setForm({ ...form, prioridade: p })}
+                        className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors border ${
+                          form.prioridade === p
+                            ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                            : "bg-secondary text-secondary-foreground border-border hover:bg-secondary/80"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
               </div>
 
               <DialogFooter>
