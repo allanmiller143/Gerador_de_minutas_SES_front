@@ -1,5 +1,5 @@
+import { Bot, User, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Bot, User } from "lucide-react";
 import type { Priority, SeiStatus } from "@/data/mock";
 import { Remetente } from "@/types/remetente";
 
@@ -18,15 +18,29 @@ export const PriorityBadge = ({ value }: { value: Priority }) => {
   );
 };
 
-export const StatusBadge = ({ value }: { value: SeiStatus }) => {
+export const StatusBadge = ({ value, daysInReview }: { value: SeiStatus; daysInReview?: number }) => {
   const map: Record<SeiStatus, string> = {
     "Pré-análise": "bg-accent text-accent-foreground",
     "Em revisão": "bg-priority-medium-bg text-priority-medium",
     "Concluído": "bg-priority-low-bg text-priority-low",
   };
+
+  //Verifica se deve mostrar o alerta de ociosidade.
+  const showWarning = value === "Em revisão" && daysInReview !== undefined && daysInReview >= 3;
+
   return (
-    <span className={cn("inline-flex w-fit items-center px-2.5 py-0.5 rounded-full text-xs font-semibold", map[value])}>
+    <span className={cn("inline-flex w-fit items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold", map[value])}>
       {value}
+      {showWarning && (
+        <span className="relative group flex items-center">
+          <AlertTriangle className="h-3.5 w-3.5 text-orange-600 cursor-help" />
+          
+          {/* Tooltip customizado com Tailwind (aparece instantaneamente) */}
+          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block w-max px-2 py-1 bg-zinc-900 text-zinc-50 text-[11px] font-normal rounded shadow-md z-50 whitespace-nowrap">
+            Esse processo está em revisão há {daysInReview} dias
+          </span>
+        </span>
+      )}
     </span>
   );
 };

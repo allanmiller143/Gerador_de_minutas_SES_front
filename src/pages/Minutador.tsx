@@ -19,6 +19,7 @@ import ReactMarkdown from "react-markdown";
 import { PromptEditorDialog } from "./Resumo_Minuta/PromptEditorDialog";
 import { getProcessosPollingInterval, isFailedStatus, isProcessingStatus } from "@/lib/processStatus";
 import { ChatProcessoPanel } from "./Resumo_Minuta/ChatProcessoPanel";
+import { marked } from "marked";
 
 const etapas = ["Pré-análise", "Jurisprudências", "Minuta gerada", "Revisão humana"];
 
