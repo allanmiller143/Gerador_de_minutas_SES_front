@@ -23,6 +23,7 @@ export interface ProcessoSEI {
   prioridade: PrioridadeProcesso;       //Grau de urgência 
   complexidade?: string;                //Grau de complexidade (FÁCIL, MÉDIO, DIFÍCIL)
   complexidade_justificativa?: string;  //Explicação técnica gerada pela IA sobre a complexidade
+  alerta_ocr?: boolean;                 //Indica se o OCR falhou ou gerou texto insuficiente (por ter imagens ou texto ilegível)
   iaConfidence: number;                 //Nível de confiança da IA (valor decimal de 0 a 1)
   analista?: string;                    //Nome do revisor humano (opcional, nulo se estiver na IA)
   dataRevisao?: string;                 //Quando a revisão humana aconteceu (opcional)
