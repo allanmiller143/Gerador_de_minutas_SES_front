@@ -5,7 +5,7 @@ import { useGenerateResumo, useRestoreResumo, useResumoVersions, useSeiDetail, u
 import { RichTextEditor, RichTextEditorRef } from "@/components/RichTextEditor";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Check, CheckCircle2, Save, Lock, Bot, Sparkles, FileText, RotateCcw, Loader2, Download, AlertTriangle, BookOpen, ExternalLink, FileStack } from "lucide-react";
+import { ArrowLeft, Check, CheckCircle2, Save, Lock, Bot, Sparkles, FileText, RotateCcw, Loader2, Download, AlertTriangle, BookOpen, ExternalLink, FileStack, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { downloadProcessoPDF, downloadKnowledgeBaseFile, enviarParaSEI  } from "@/lib/api";
 import { toast } from "sonner";
@@ -348,6 +348,14 @@ const Minutador = () => {
         <Bot className="h-4 w-4 text-primary" />
         Pré-análise, pesquisa de jurisprudência e minuta inicial já foram geradas pela IA. Revise, ajuste e finalize abaixo.
       </div>
+
+
+      {sei.alerta_ocr && (
+        <div className="mb-4 bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-400 p-3 rounded-lg text-sm flex items-start gap-2 shadow-sm animate-in fade-in">
+          <ShieldAlert className="h-4 w-4 mt-0.5 shrink-0" />
+          <p><strong>Atenção:</strong> Este processo contém imagens ou PDFs digitalizados. Por esse motivo, o desempenho da IA pode não ser tão bom e este documento precisa de uma atenção maior e de uma conferência mais cuidadosa.</p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <section className="lg:col-span-2 bg-card border border-border rounded-xl shadow-card p-6">
