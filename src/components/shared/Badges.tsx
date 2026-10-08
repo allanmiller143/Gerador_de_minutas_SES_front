@@ -1,7 +1,8 @@
-import { Bot, User, AlertTriangle } from "lucide-react";
+import { Bot, User, AlertTriangle, Clock, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Priority, SeiStatus } from "@/data/mock";
 import { Remetente } from "@/types/remetente";
+import { isPendingStatus, isProcessingStatus, isFailedStatus } from "@/lib/processStatus";
 
 export const PriorityBadge = ({ value }: { value: Priority }) => {
   const map: Record<Priority, string> = {
@@ -18,8 +19,43 @@ export const PriorityBadge = ({ value }: { value: Priority }) => {
   );
 };
 
-export const StatusBadge = ({ value, daysInReview }: { value: SeiStatus; daysInReview?: number }) => {
-  const map: Record<SeiStatus, string> = {
+export const StatusBadge = ({
+  value,
+  statusProcessamento,
+  daysInReview,
+}: {
+  value: SeiStatus | string;
+  statusProcessamento?: string | null;
+  daysInReview?: number;
+}) => {
+  if (isPendingStatus(statusProcessamento)) {
+    return (
+      <span className="inline-flex w-fit items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-400">
+        <Clock className="h-3 w-3" />
+        Pendente
+      </span>
+    );
+  }
+
+  if (isProcessingStatus(statusProcessamento)) {
+    return (
+      <span className="inline-flex w-fit items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-500/15 text-blue-700 dark:text-blue-400">
+        <Loader2 className="h-3 w-3 animate-spin" />
+        Processando
+      </span>
+    );
+  }
+
+  if (isFailedStatus(statusProcessamento) || value === "Falha na análise") {
+    return (
+      <span className="inline-flex w-fit items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-destructive/15 text-destructive">
+        <AlertTriangle className="h-3 w-3" />
+        Falha na análise
+      </span>
+    );
+  }
+
+  const map: Record<string, string> = {
     "Pré-análise": "bg-accent text-accent-foreground",
     "Em revisão": "bg-priority-medium-bg text-priority-medium",
     "Concluído": "bg-priority-low-bg text-priority-low",
@@ -29,7 +65,7 @@ export const StatusBadge = ({ value, daysInReview }: { value: SeiStatus; daysInR
   const showWarning = value === "Em revisão" && daysInReview !== undefined && daysInReview >= 3;
 
   return (
-    <span className={cn("inline-flex w-fit items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold", map[value])}>
+    <span className={cn("inline-flex w-fit items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold", map[value] || "bg-accent text-accent-foreground")}>
       {value}
       {showWarning && (
         <span className="relative group flex items-center">

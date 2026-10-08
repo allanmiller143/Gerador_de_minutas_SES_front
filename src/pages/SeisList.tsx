@@ -9,11 +9,11 @@ import { type SeiStatus } from "@/data/mock";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Loader2, ChevronLeft, ChevronRight, FileText, Filter, Table, Pencil, RotateCcw } from "lucide-react";
+import { Search, Loader2, ChevronLeft, ChevronRight, FileText, Filter, Table, Pencil, RotateCcw, Clock } from "lucide-react";
 import { useProcessos, useAnalisarProcesso, useReprocessarFalhas } from "@/hooks/useProcessos";
 import { useRemetentes } from "@/hooks/useRemetentes";
 import { Skeleton } from "@/components/ui/skeleton";
-import { isProcessingStatus, isFailedStatus } from "@/lib/processStatus";
+import { isProcessingStatus, isFailedStatus, isPendingStatus, isProcessoReadyForView } from "@/lib/processStatus";
 import { PageTutorialWizard, TutorialStep } from "@/components/shared/PageTutorialWizard";
 import { toast } from "sonner";
 
@@ -289,7 +289,9 @@ const SeisList = () => {
                         <span className="text-muted-foreground/50">Sem prazo</span>
                       )}
                     </td>
-                    <td className="px-5 py-3 whitespace-nowrap"><StatusBadge value={s.status} /></td>
+                    <td className="px-5 py-3 whitespace-nowrap">
+                      <StatusBadge value={s.status} statusProcessamento={s.status_processamento} />
+                    </td>
                     <td className="px-5 py-3 whitespace-nowrap">
                       <ComplexityBadge value={s.complexidade} justificativa={s.complexidade_justificativa} />
                     </td>
@@ -297,9 +299,21 @@ const SeisList = () => {
                       data-tour={index === 0 ? "action-sei" : undefined}
                       className="px-5 py-3 text-right space-x-2 whitespace-nowrap"
                     >
-                      <Button asChild size="sm" variant="ghost"><Link to={`/seis/${s.id}`}>Detalhes</Link></Button>
+                      {isProcessoReadyForView(s) ? (
+                        <Button asChild size="sm" variant="ghost">
+                          <Link to={`/seis/${s.id}`}>Detalhes</Link>
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="ghost" disabled className="cursor-not-allowed opacity-60" title="Processo aguardando processamento">
+                          Detalhes
+                        </Button>
+                      )}
                       {s.status !== "Concluído" && (
-                        isProcessingStatus(s.status_processamento) ? (
+                        isPendingStatus(s.status_processamento) ? (
+                          <Button size="sm" variant="outline" disabled className="cursor-not-allowed opacity-60">
+                            <Clock className="mr-1.5 h-3.5 w-3.5" /> Pendente
+                          </Button>
+                        ) : isProcessingStatus(s.status_processamento) ? (
                           <Button size="sm" disabled className="cursor-not-allowed">
                             <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Analisando
                           </Button>

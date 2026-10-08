@@ -17,7 +17,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { domainDataQueryKeys } from "@/services/domainData";
 import ReactMarkdown from "react-markdown";
 import { PromptEditorDialog } from "./Resumo_Minuta/PromptEditorDialog";
-import { getProcessosPollingInterval, isFailedStatus, isProcessingStatus } from "@/lib/processStatus";
+import { getProcessosPollingInterval, isFailedStatus, isProcessingStatus, isProcessoReadyForView } from "@/lib/processStatus";
+import { ProcessoBloqueadoView } from "@/components/shared/ProcessoBloqueadoView";
 import { ChatProcessoPanel } from "./Resumo_Minuta/ChatProcessoPanel";
 import { marked } from "marked";
 
@@ -228,6 +229,24 @@ const Minutador = () => {
           </Button>
         </div>
       </AppLayout>
+    );
+  }
+
+  if (!isProcessoReadyForView(sei)) {
+    return (
+      <ProcessoBloqueadoView
+        processo={sei}
+        onReprocessar={async () => {
+          try {
+            await analisarProcesso({ id: Number(sei.id), apenasMinuta: false });
+            queryClient.invalidateQueries({ queryKey: domainDataQueryKeys.seiDetail(id) });
+            toast.success("Processo reenviado para processamento.");
+          } catch (err: any) {
+            toast.error(err?.message || "Erro ao reenviar processo.");
+          }
+        }}
+        isReprocessando={isAnalyzing}
+      />
     );
   }
 

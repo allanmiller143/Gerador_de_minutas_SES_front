@@ -14,12 +14,18 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
+import { getProcessosPollingInterval, isProcessoReadyForView } from "@/lib/processStatus";
+import { ProcessoBloqueadoView } from "@/components/shared/ProcessoBloqueadoView";
 import { toast } from "sonner";
 
 const SeiDetail = () => {
   const { id } = useParams();
-  const { data, isLoading, error } = useSeiDetail(id);
+  const { data, isLoading, error } = useSeiDetail(id, {
+    refetchInterval: (query: any) => {
+      const s = query.state.data?.sei;
+      return getProcessosPollingInterval(s ? [s] : []);
+    },
+  });
   const { drafts, priorities, getEvents, changePriority } = useDrafts();
   const { user } = useAuth();
   const base = data?.sei;
@@ -73,6 +79,14 @@ const SeiDetail = () => {
           </Button>
         </div>
       </AppLayout>
+    );
+  }
+
+  if (!isProcessoReadyForView(sei)) {
+    return (
+      <ProcessoBloqueadoView
+        processo={sei}
+      />
     );
   }
 
